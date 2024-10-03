@@ -84,18 +84,19 @@ mach_vm_address_t vm;
 static int get_jump_size(void *address, void *destnation);
 static int insert_jump(void *address, void *destnation);
 static int save_header(void *address, void *destnation, int *skip_len);
-static void vm_release(void);
+static int vm_release(void);
 
 int tiny_hook(void *function, void *destnation, void **origin) {
+    int kr = 0;
     if (origin == NULL)
         insert_jump(function, destnation);
     else {
         if (!position) {
-            int kr = mach_vm_allocate(mach_task_self(), &vm, PAGE_SIZE, VM_FLAGS_ANYWHERE);
+            kr = mach_vm_allocate(mach_task_self(), &vm, PAGE_SIZE, VM_FLAGS_ANYWHERE);
 #ifdef debug
             assert(kr == 0);
 #endif
-            atexit(vm_release);
+            atexit((void (*)(void))vm_release);
         }
         int skip_len;
         *origin = (void *)(vm+position);
@@ -103,7 +104,7 @@ int tiny_hook(void *function, void *destnation, void **origin) {
         position += insert_jump((void *)(vm+position), function+skip_len);
         insert_jump(function, destnation);
     }
-    return 0;
+    return kr;
 }
 
 static int get_jump_size(void *address, void *destnation) {
@@ -170,11 +171,11 @@ static int save_header(void *address, void *destnation, int *skip_len) {
     return header_len;
 }
 
-static void vm_release(void) {
+static int vm_release(void) {
     int kr = mach_vm_deallocate(mach_task_self(), vm, PAGE_SIZE);
 #ifdef debug
     assert(kr == 0);
     printf("vm released!\n");
 #endif
-    return;
+    return kr;
 }

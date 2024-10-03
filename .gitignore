@@ -14,5 +14,6 @@
 .com.apple.timemachine.donotpresent
 
 # Useless project files
+*.o
 .zed
 *.dSYM

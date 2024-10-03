@@ -1,14 +1,15 @@
 SYS_ARCH := $(shell uname -m)
 
-CC = clang
-CFLAGS = -Iinclude -O3 -Wall
+CC := clang
+CFLAGS := -Iinclude -O3 -Wall
 
-SRC = src/memory.c src/tinyhook.c
-OBJ = $(SRC:.c=.o)
-LIB = lib/libtinyhook.a
-TST = tests/example
+SRC := src/memory.c src/tinyhook.c
+OBJ := $(SRC:.c=.o)
+LIB := lib/libtinyhook.a
+TST := tests/example
 
 ifeq ($(SYS_ARCH), x86_64)
+	SRC += src/fde64/fde64.asm
 	OBJ += src/fde64/fde64.o
 endif
 
@@ -24,9 +25,12 @@ $(LIB): $(OBJ)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+%.o: %.asm
+	$(CC) $(CFLAGS) -c $< -o $@
+
 tests/example: tests/example.c $(LIB)
 	$(CC) $(CFLAGS) -ltinyhook -Llib $< -o $@
 
 .PHONY: clean
 clean:
-	rm -f $(LIB) $(TST) src/memory.o src/tinyhook.o
+	rm -f $(LIB) $(TST) $(OBJ)
