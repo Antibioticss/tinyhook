@@ -3,7 +3,7 @@ SYS_ARCH := $(shell uname -m)
 CC := clang
 CFLAGS := -Iinclude -O3 -Wall
 
-SRC := src/memory.c src/tinyhook.c
+SRC := src/memory.c src/tinyhook.c src/symsolve.c
 OBJ := $(SRC:.c=.o)
 LIB := lib/libtinyhook.a
 TST := tests/example
