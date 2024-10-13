@@ -6,7 +6,7 @@ CFLAGS := -Iinclude -O3 -Wall
 SRC := src/memory.c src/tinyhook.c src/symsolve.c
 OBJ := $(SRC:.c=.o)
 LIB := lib/libtinyhook.a
-TST := tests/example
+TST := tests/libtest.dylib tests/example
 
 ifeq ($(SYS_ARCH), x86_64)
 	SRC += src/fde64/fde64.asm
@@ -28,8 +28,11 @@ $(LIB): $(OBJ)
 %.o: %.asm
 	$(CC) $(CFLAGS) -c $< -o $@
 
-tests/example: tests/example.c $(LIB)
-	$(CC) $(CFLAGS) -ltinyhook -Llib $< -o $@
+tests/libtest.dylib: tests/test.c $(LIB)
+	$(CC) $(CFLAGS) -dynamiclib -ltinyhook -Llib $< -o $@
+
+tests/example: tests/example.c tests/libtest.dylib
+	$(CC) -O0 -ltest -Ltests $< -o $@
 
 .PHONY: clean
 clean:

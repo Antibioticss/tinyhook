@@ -15,5 +15,6 @@
 
 # Useless project files
 *.o
+*dylib
 .zed
 *.dSYM
