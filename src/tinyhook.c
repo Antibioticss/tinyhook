@@ -1,4 +1,4 @@
-#include "tinyhook.h"
+#include "../include/tinyhook.h"
 
 #include <stdlib.h>         // atexit()
 #include <string.h>         // memcpy()
@@ -49,7 +49,7 @@ int tiny_insert(void *address, void *destnation, bool link) {
 #elif __x86_64__
     jump_size = 5;
     *bytes = link ? X86_64_CALL : X86_64_JMP;
-    assembly = (int)destnation - (int)address - 5;
+    assembly = (long)destnation - (long)address - 5;
     *(int *)(bytes + 1) = assembly;
 #endif
     write_mem(address, bytes, jump_size);
@@ -114,7 +114,6 @@ static int get_jump_size(void *address, void *destnation) {
 #elif __x86_64__
     return distance < 2*GB ? 5 : 14;
 #endif
-    
 }
 
 static int insert_jump(void *address, void *destnation) {
@@ -151,7 +150,7 @@ static int save_header(void *address, void *destnation, int *skip_len) {
     for (*skip_len = 0; *skip_len < min_len; *skip_len += assembly.len) {
         long long cur_addr = (long long)address + *skip_len;
         decode(bytes_in+*skip_len, &assembly);
-        if (assembly.opcode == 0x8B && assembly.modrm_rm == 0b101) { 
+        if (assembly.opcode == 0x8B && assembly.modrm_rm == 0b101) {
             // mov r64, [rip+]
             *(short *)(bytes_out + header_len) = X86_64_MOV_RI64;
             bytes_out[header_len + 1] += assembly.modrm_reg;

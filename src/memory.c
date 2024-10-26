@@ -1,4 +1,4 @@
-#include "tinyhook.h"
+#include "../include/tinyhook.h"
 
 #include <string.h>         // memcpy()
 #include <mach/mach_init.h> // mach_task_self()

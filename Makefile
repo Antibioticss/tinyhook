@@ -3,7 +3,7 @@ OSX_VER ?= 10.15
 export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
 
 CC := clang -arch $(ARCH)
-CFLAGS := -Iinclude -O3 -Wall
+CFLAGS := -O3 -Wall
 
 SRC := src/memory.c src/tinyhook.c src/symsolve.c
 OBJ := $(SRC:.c=.o)
@@ -21,10 +21,10 @@ build: $(LIB)
 
 release:
 	$(MAKE) clean ARCH=x86_64
-	$(MAKE) build ARCH=x86_64
+	$(MAKE) build ARCH=x86_64 OSX_VER=$(OSX_VER)
 	mv $(LIB) $(LIB).x86_64
 	$(MAKE) clean ARCH=x86_64
-	$(MAKE) build ARCH=arm64
+	$(MAKE) build ARCH=arm64 OSX_VER=$(OSX_VER)
 	mv $(LIB) $(LIB).arm64
 	$(MAKE) clean ARCH=arm64
 	lipo -create $(LIB).x86_64 $(LIB).arm64 -o $(LIB)

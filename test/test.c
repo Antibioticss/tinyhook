@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "tinyhook.h"
+#include "../include/tinyhook.h"
 
 int (*orig_printf)(const char *format, ...);
 int my_printf(const char *format, ...) {
