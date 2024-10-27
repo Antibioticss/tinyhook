@@ -1,40 +1,39 @@
 #include "../include/tinyhook.h"
 
-#include <stdlib.h>         // atexit()
-#include <string.h>         // memcpy()
 #include <mach/mach_init.h> // mach_task_self()
 #include <mach/mach_vm.h>   // mach_vm_*
+#include <stdlib.h>         // atexit()
+#include <string.h>         // memcpy()
 #ifdef __x86_64__
 #include "fde64/fde64.h"
 #endif
 #ifdef debug
-#include <assert.h>         // assert()
-#include <stdio.h>          // printf()
+#include <assert.h> // assert()
 #endif
 
-#define MB  (1ll<<20)
-#define GB  (1ll<<30)
+#define MB (1ll << 20)
+#define GB (1ll << 30)
 
 #ifdef __aarch64__
-#define AARCH64_B           0x14000000      // b        +0
-#define AARCH64_BL          0x94000000      // bl       +0
-#define AARCH64_ADRP        0x90000011      // adrp     x17, 0
-#define AARCH64_BR          0xd61f0220      // br       x17
-#define AARCH64_BLR         0xd63f0220      // blr      x17
-#define AARCH64_ADD         0x91000231      // add      x17, x17, 0
-#define AARCH64_SUB         0xd1000231      // sub      x17, x17, 0
+#define AARCH64_B     0x14000000 // b        +0
+#define AARCH64_BL    0x94000000 // bl       +0
+#define AARCH64_ADRP  0x90000011 // adrp     x17, 0
+#define AARCH64_BR    0xd61f0220 // br       x17
+#define AARCH64_BLR   0xd63f0220 // blr      x17
+#define AARCH64_ADD   0x91000231 // add      x17, x17, 0
+#define AARCH64_SUB   0xd1000231 // sub      x17, x17, 0
 
-#define MAX_JUMP_SIZE       12
+#define MAX_JUMP_SIZE 12
 
 #elif __x86_64__
-#define X86_64_CALL         0xe8            // call
-#define X86_64_JMP          0xe9            // jmp
-#define X86_64_JMP_RIP      0x000025ff      // jmp      [rip]
-#define X86_64_CALL_RIP     0x000015ff      // call     [rip]
-#define X86_64_MOV_RI64     0xB848          // mov      r64, m64
-#define X86_64_MOV_RM64     0x8B48          // mov      r64, [r64]
+#define X86_64_CALL     0xe8       // call
+#define X86_64_JMP      0xe9       // jmp
+#define X86_64_JMP_RIP  0x000025ff // jmp      [rip]
+#define X86_64_CALL_RIP 0x000015ff // call     [rip]
+#define X86_64_MOV_RI64 0xb848     // mov      r64, m64
+#define X86_64_MOV_RM64 0x8b48     // mov      r64, [r64]
 
-#define MAX_JUMP_SIZE       14
+#define MAX_JUMP_SIZE   14
 #endif
 
 int tiny_insert(void *address, void *destnation, bool link) {
@@ -99,9 +98,9 @@ int tiny_hook(void *function, void *destnation, void **origin) {
             atexit((void (*)(void))vm_release);
         }
         int skip_len;
-        *origin = (void *)(vm+position);
-        position += save_header(function, (void *)(vm+position), &skip_len);
-        position += insert_jump((void *)(vm+position), function+skip_len);
+        *origin = (void *)(vm + position);
+        position += save_header(function, (void *)(vm + position), &skip_len);
+        position += insert_jump((void *)(vm + position), function + skip_len);
         insert_jump(function, destnation);
     }
     return kr;
@@ -110,9 +109,9 @@ int tiny_hook(void *function, void *destnation, void **origin) {
 static int get_jump_size(void *address, void *destnation) {
     long long distance = destnation > address ? destnation - address : address - destnation;
 #ifdef __aarch64__
-    return distance < 128*MB ? 4 : 12;
+    return distance < 128 * MB ? 4 : 12;
 #elif __x86_64__
-    return distance < 2*GB ? 5 : 14;
+    return distance < 2 * GB ? 5 : 14;
 #endif
 }
 
@@ -134,6 +133,7 @@ static int save_header(void *address, void *destnation, int *skip_len) {
         long cur_addr = (long)address + i, cur_dst = (long)destnation + i;
         if (((cur_asm ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
+            // modify the immediate
             int len = (cur_asm >> 29 & 0x3) | ((cur_asm >> 3) & 0x1ffffc);
             len += (cur_addr >> 12) - (cur_dst >> 12);
             cur_asm &= 0x9f00001f;
@@ -144,14 +144,17 @@ static int save_header(void *address, void *destnation, int *skip_len) {
 #elif __x86_64__
     int min_len;
     struct fde64s assembly;
-    unsigned char bytes_in[MAX_JUMP_SIZE*2], bytes_out[MAX_JUMP_SIZE*4];
-    read_mem(bytes_in, address, MAX_JUMP_SIZE*2);
+    unsigned char bytes_in[MAX_JUMP_SIZE * 2], bytes_out[MAX_JUMP_SIZE * 4];
+    read_mem(bytes_in, address, MAX_JUMP_SIZE * 2);
     min_len = get_jump_size(address, destnation);
     for (*skip_len = 0; *skip_len < min_len; *skip_len += assembly.len) {
         long long cur_addr = (long long)address + *skip_len;
-        decode(bytes_in+*skip_len, &assembly);
+        decode(bytes_in + *skip_len, &assembly);
         if (assembly.opcode == 0x8B && assembly.modrm_rm == 0b101) {
             // mov r64, [rip+]
+            // split it into 2 instructions
+            // mov r64 $rip+(immediate)
+            // mov r64 [r64]
             *(short *)(bytes_out + header_len) = X86_64_MOV_RI64;
             bytes_out[header_len + 1] += assembly.modrm_reg;
             *(long long *)(bytes_out + header_len + 2) = assembly.disp32 + cur_addr + assembly.len;
@@ -159,9 +162,8 @@ static int save_header(void *address, void *destnation, int *skip_len) {
             *(short *)(bytes_out + header_len) = X86_64_MOV_RM64;
             bytes_out[header_len + 2] = assembly.modrm_reg << 3 | assembly.modrm_reg;
             header_len += 3;
-        }
-        else {
-            memcpy(bytes_out+header_len, bytes_in+*skip_len, assembly.len);
+        } else {
+            memcpy(bytes_out + header_len, bytes_in + *skip_len, assembly.len);
             header_len += assembly.len;
         }
     }
@@ -174,7 +176,6 @@ static int vm_release(void) {
     int kr = mach_vm_deallocate(mach_task_self(), vm, PAGE_SIZE);
 #ifdef debug
     assert(kr == 0);
-    printf("vm released!\n");
 #endif
     return kr;
 }

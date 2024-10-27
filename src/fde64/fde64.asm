@@ -5,3 +5,4 @@
 
 _decode:
     .incbin "src/fde64/decode.bin"
+    // This binary is from https://github.com/Antibioticss/fde64
