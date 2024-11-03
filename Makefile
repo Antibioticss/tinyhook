@@ -25,24 +25,10 @@ ifeq ($(ARCH), x86_64)
 	OBJ += $(FDE:.asm=.o)
 endif
 
-.PHONY: build release test all
+.PHONY: build test
 build: $(LIB)
 
-release:
-	$(MAKE) clean
-	$(MAKE) build ARCH=x86_64 OSX_VER=$(OSX_VER)
-	mv $(LIB) $(LIB).x86_64
-	$(MAKE) clean
-	$(MAKE) build ARCH=arm64 OSX_VER=$(OSX_VER)
-	mv $(LIB) $(LIB).arm64
-	$(MAKE) clean
-	lipo -create $(LIB).x86_64 $(LIB).arm64 -o $(LIB)
-	rm $(LIB).x86_64 $(LIB).arm64
-	zip -j -9 $(REL) $(LIB) include/tinyhook.h
-
 test: $(TST)
-
-all: $(LIB) $(TST)
 
 $(LIB): $(OBJ)
 	ar rcs $@ $^
