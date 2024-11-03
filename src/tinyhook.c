@@ -1,15 +1,18 @@
-#include "../include/tinyhook.h"
-
 #include <mach/mach_init.h> // mach_task_self()
 #include <mach/mach_vm.h>   // mach_vm_*
 #include <stdlib.h>         // atexit()
 #include <string.h>         // memcpy()
+
+#ifndef COMPACT
+#include <mach/mach_error.h> // mach_error_string()
+#include <printf.h>          // printf()
+#endif
+
 #ifdef __x86_64__
 #include "fde64/fde64.h"
 #endif
-#ifdef debug
-#include <assert.h> // assert()
-#endif
+
+#include "../include/tinyhook.h"
 
 #define MB (1ll << 20)
 #define GB (1ll << 30)
@@ -41,11 +44,13 @@ int tiny_insert(void *address, void *destnation, bool link) {
     int assembly;
     unsigned char bytes[MAX_JUMP_SIZE];
 #ifdef __aarch64__
+    // b/bl imm    ; go to destnation
     jump_size = 4;
     assembly = (destnation - address) >> 2 & 0x3ffffff;
     assembly |= link ? AARCH64_BL : AARCH64_B;
     *(int *)bytes = assembly;
 #elif __x86_64__
+    // jmp/call imm    ; go to destnation
     jump_size = 5;
     *bytes = link ? X86_64_CALL : X86_64_JMP;
     assembly = (long)destnation - (long)address - 5;
@@ -59,6 +64,9 @@ int tiny_insert_far(void *address, void *destnation, bool link) {
     size_t jump_size;
     unsigned char bytes[MAX_JUMP_SIZE];
 #ifdef __aarch64__
+    // adrp    x17, imm
+    // add     x17, x17, imm    ; x17 -> destnation
+    // br/blr  x17
     jump_size = 12;
     int assembly;
     assembly = (((long)destnation >> 12) - ((long)address >> 12)) & 0x1fffff;
@@ -69,6 +77,7 @@ int tiny_insert_far(void *address, void *destnation, bool link) {
     *(int *)(bytes + 8) = link ? AARCH64_BLR : AARCH64_BR;
 #elif __x86_64__
     jump_size = 14;
+    // jmp [rip]    ; rip stored destnation
     *(int *)bytes = link ? X86_64_CALL_RIP : X86_64_JMP_RIP;
     bytes[5] = bytes[6] = 0;
     *(long long *)(bytes + 6) = (long long)destnation;
@@ -83,7 +92,6 @@ mach_vm_address_t vm;
 static int get_jump_size(void *address, void *destnation);
 static int insert_jump(void *address, void *destnation);
 static int save_header(void *address, void *destnation, int *skip_len);
-static int vm_release(void);
 
 int tiny_hook(void *function, void *destnation, void **origin) {
     int kr = 0;
@@ -91,11 +99,13 @@ int tiny_hook(void *function, void *destnation, void **origin) {
         insert_jump(function, destnation);
     else {
         if (!position) {
+            // alloc a vm to store headers and jumps
             kr = mach_vm_allocate(mach_task_self(), &vm, PAGE_SIZE, VM_FLAGS_ANYWHERE);
-#ifdef debug
-            assert(kr == 0);
+#ifndef COMPACT
+            if (kr != 0) {
+                printf("mach_vm_allocate: %s\n", mach_error_string(kr));
+            }
 #endif
-            atexit((void (*)(void))vm_release);
         }
         int skip_len;
         *origin = (void *)(vm + position);
@@ -170,12 +180,4 @@ static int save_header(void *address, void *destnation, int *skip_len) {
 #endif
     write_mem(destnation, bytes_out, header_len);
     return header_len;
-}
-
-static int vm_release(void) {
-    int kr = mach_vm_deallocate(mach_task_self(), vm, PAGE_SIZE);
-#ifdef debug
-    assert(kr == 0);
-#endif
-    return kr;
 }

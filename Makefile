@@ -12,6 +12,14 @@ LIB := libtinyhook.a
 TST := libtest.dylib example
 REL := tinyhook.zip
 
+ifeq ($(DEBUG), 1)
+    CFLAGS += -g
+endif
+
+ifeq ($(COMPACT), 1)
+    CFLAGS += -DCOMPACT
+endif
+
 ifeq ($(ARCH), x86_64)
 	SRC += $(FDE)
 	OBJ += $(FDE:.asm=.o)
