@@ -10,6 +10,9 @@
 extern "C" {
 #endif
 
+#define CLASS_METHOD    0
+#define INSTANCE_METHOD 1
+
 /* inline hook */
 int tiny_hook(void *function, void *destnation, void **origin);
 
@@ -20,9 +23,9 @@ int tiny_insert_far(void *address, void *destnation, bool link);
 /* objective-c runtime */
 int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *sel2);
 
-void *ocrt_impl(const char *cls, const char *sel);
+void *ocrt_impl(const char *cls, const char *sel, bool type);
 
-Method ocrt_method(const char *cls, const char *sel);
+Method ocrt_method(const char *cls, const char *sel, bool type);
 
 /* memory access */
 int read_mem(void *destnation, const void *source, size_t len);
