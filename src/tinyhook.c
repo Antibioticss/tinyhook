@@ -5,7 +5,7 @@
 
 #ifndef COMPACT
 #include <mach/mach_error.h> // mach_error_string()
-#include <printf.h>          // printf()
+#include <printf.h>          // fprintf()
 #endif
 
 #ifdef __x86_64__
@@ -103,7 +103,7 @@ int tiny_hook(void *function, void *destnation, void **origin) {
             kr = mach_vm_allocate(mach_task_self(), &vm, PAGE_SIZE, VM_FLAGS_ANYWHERE);
 #ifndef COMPACT
             if (kr != 0) {
-                printf("mach_vm_allocate: %s\n", mach_error_string(kr));
+                fprintf(stderr, "mach_vm_allocate: %s\n", mach_error_string(kr));
             }
 #endif
         }

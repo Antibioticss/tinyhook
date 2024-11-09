@@ -4,7 +4,7 @@
 #include <string.h>        // strcmp()
 
 #ifndef COMPACT
-#include <printf.h> // printf()
+#include <printf.h> // fprintf()
 #endif
 
 #include "../include/tinyhook.h"
@@ -16,7 +16,7 @@ void *sym_solve(uint32_t image_index, const char *symbol_name) {
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
 #ifndef COMPACT
     if (mh_header == NULL) {
-        printf("sym_solve: image_index out of range!\n");
+        fprintf(stderr, "sym_solve: image_index out of range!\n");
     }
 #endif
     struct symtab_command *symtab_cmd = NULL;

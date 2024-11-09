@@ -4,7 +4,7 @@
 
 #ifndef COMPACT
 #include <mach/mach_error.h> // mach_error_string()
-#include <printf.h>          // printf()
+#include <printf.h>          // fprintf()
 #endif
 
 #include "../include/tinyhook.h"
@@ -18,7 +18,7 @@ int read_mem(void *destnation, const void *source, size_t len) {
     kr |= mach_vm_deallocate(mach_task_self(), data, dataCnt);
 #ifndef COMPACT
     if (kr != 0) {
-        printf("read_mem: %s\n", mach_error_string(kr));
+        fprintf(stderr, "read_mem: %s\n", mach_error_string(kr));
     }
 #endif
     return kr;
@@ -33,7 +33,7 @@ int write_mem(void *destnation, const void *source, size_t len) {
                           VM_PROT_READ | VM_PROT_EXECUTE);
 #ifndef COMPACT
     if (kr != 0) {
-        printf("write_mem: %s\n", mach_error_string(kr));
+        fprintf(stderr, "write_mem: %s\n", mach_error_string(kr));
     }
 #endif
     return kr;

@@ -40,7 +40,7 @@ void *sym_solve(uint32_t image_index, const char *symbol_name);
 
 ## examples
 
-See [tests/example.c](https://github.com/Antibioticss/tinyhook/blob/main/tests/example.c)
+See [tests/example.c](https://github.com/Antibioticss/tinyhook/blob/main/test/example.c)
 
 ## references
 
