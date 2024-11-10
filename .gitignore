@@ -20,4 +20,5 @@
 *.dSYM
 *.dylib
 .zed
+.vscode
 example
