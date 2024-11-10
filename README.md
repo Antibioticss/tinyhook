@@ -2,7 +2,7 @@
 
 A tiny macOS inline hook framework
 
-## functions
+## Functions
 
 ### Inline hook
 
@@ -58,7 +58,7 @@ int write_mem(void *destnation, const void *source, size_t len);
 void *sym_solve(uint32_t image_index, const char *symbol_name);
 ```
 
-## examples
+## Examples
 
 ```shell
 make test
@@ -66,7 +66,7 @@ make test
 
 Details are in [test](https://github.com/Antibioticss/tinyhook/tree/main/test).
 
-## references
+## References
 
 Thanks to these projects for their inspiring idea and code!
 

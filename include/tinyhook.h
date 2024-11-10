@@ -36,9 +36,9 @@ int write_mem(void *destnation, const void *source, size_t len);
 void *sym_solve(uint32_t image_index, const char *symbol_name);
 
 /* find in memory */
-int find_code(uint32_t image_index, const unsigned char *code, size_t len, int count, void **out);
+// int find_code(uint32_t image_index, const unsigned char *code, size_t len, int count, void **out);
 
-int find_data(void *start, void *end, const unsigned char *data, size_t len, int count, void **out);
+// int find_data(void *start, void *end, const unsigned char *data, size_t len, int count, void **out);
 
 #ifdef __cplusplus
 }
