@@ -5,6 +5,6 @@ IndentWidth: 4
 ---
 Language: Cpp
 # Force pointers to the type for C++.
-ColumnLimit: 100
+ColumnLimit: 120
 AlignConsecutiveMacros: AcrossEmptyLines
 ...
