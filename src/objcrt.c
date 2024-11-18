@@ -1,4 +1,5 @@
 #include <objc/objc-runtime.h>
+#include <objc/runtime.h>
 
 #ifndef COMPACT
 #include <mach/mach_error.h> // mach_error_string()
@@ -37,6 +38,15 @@ int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *
         return 1;
     }
     method_exchangeImplementations(oc_method1, oc_method2);
+    return 0;
+}
+
+int ocrt_hook(const char *cls, const char *sel, void *destnation, void **origin) {
+    Method oc_method = ensure_method(cls, sel);
+    if (oc_method == NULL) {
+        return 1;
+    }
+    *origin = method_setImplementation(oc_method, destnation);
     return 0;
 }
 

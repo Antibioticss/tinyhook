@@ -21,6 +21,8 @@ int tiny_insert(void *address, void *destnation, bool link);
 int tiny_insert_far(void *address, void *destnation, bool link);
 
 /* objective-c runtime */
+int ocrt_hook(const char *cls, const char *sel, void *destnation, void **origin);
+
 int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *sel2);
 
 void *ocrt_impl(const char *cls, const char *sel, bool type);
