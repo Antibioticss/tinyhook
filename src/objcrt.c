@@ -46,7 +46,10 @@ int ocrt_hook(const char *cls, const char *sel, void *destnation, void **origin)
     if (oc_method == NULL) {
         return 1;
     }
-    *origin = method_setImplementation(oc_method, destnation);
+    void *origin_imp = method_setImplementation(oc_method, destnation);
+    if (origin != NULL) {
+        *origin = origin_imp;
+    }
     return 0;
 }
 
