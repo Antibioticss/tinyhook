@@ -3,7 +3,7 @@
 
 #include "skip.h"
 
-void skip_init(skipidx_t *idx, size_t patlen, unsigned char *pattern) {
+inline void skip_init(skipidx_t *idx, size_t patlen, const unsigned char *pattern) {
     int bufidx = 1;
     unsigned char *patt = (unsigned char *)malloc((patlen + 1) * sizeof(unsigned char));
     int *bucket = (int *)malloc(ASIZE * sizeof(int));
@@ -23,7 +23,7 @@ void skip_init(skipidx_t *idx, size_t patlen, unsigned char *pattern) {
     return;
 }
 
-int skip_match(skipidx_t *idx, unsigned char *start, unsigned char *end, int count, offset_t *offs) {
+inline int skip_match(skipidx_t *idx, unsigned char *start, unsigned char *end, int count, offset_t *offs) {
     size_t patlen = idx->plen;
     unsigned char *pattern = idx->patt;
     int *bucket = idx->buck;
@@ -32,7 +32,7 @@ int skip_match(skipidx_t *idx, unsigned char *start, unsigned char *end, int cou
     unsigned char *edge = end - patlen - 1;
     unsigned char *chbase = start + patlen - 1;
     for (; chbase <= edge; chbase += patlen) {
-        for (int j = bucket[*chbase]; buffer[j].nxt; j = buffer[j].nxt) {
+        for (int j = bucket[*chbase]; j; j = buffer[j].nxt) {
             unsigned char *cur = chbase - buffer[j].val;
             if (memcmp(pattern, cur, patlen) == 0) {
                 offs[matched++] = (offset_t)cur;
@@ -42,7 +42,7 @@ int skip_match(skipidx_t *idx, unsigned char *start, unsigned char *end, int cou
             }
         }
     }
-    for (int i = bucket[*chbase]; buffer[i].nxt; i = buffer[i].nxt) {
+    for (int i = bucket[*chbase]; i; i = buffer[i].nxt) {
         unsigned char *cur = chbase - buffer[i].val;
         if (cur + patlen <= end) {
             if (memcmp(pattern, cur, patlen) == 0) {
@@ -57,7 +57,7 @@ match_ended:
     return matched;
 }
 
-void skip_release(skipidx_t *idx) {
+inline void skip_release(skipidx_t *idx) {
     free(idx->patt);
     free(idx->buck);
     free(idx->buff);

@@ -17,7 +17,7 @@ typedef struct {
     node_t *buff;
 } skipidx_t;
 
-void skip_init(skipidx_t *idx, size_t patlen, unsigned char *pattern);
+void skip_init(skipidx_t *idx, size_t patlen, const unsigned char *pattern);
 
 int skip_match(skipidx_t *idx, unsigned char *start, unsigned char *end, int count, offset_t *offs);
 

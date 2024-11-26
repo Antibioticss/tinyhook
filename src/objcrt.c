@@ -1,5 +1,4 @@
-#include <objc/objc-runtime.h>
-#include <objc/runtime.h>
+#include <objc/runtime.h> // objc_*, ...
 
 #ifndef COMPACT
 #include <mach/mach_error.h> // mach_error_string()
@@ -19,7 +18,7 @@ Method ocrt_method(const char *cls, const char *sel, bool type) {
     }
 #ifndef COMPACT
     else {
-        fprintf(stderr, "invalid method type: %d\n", type);
+        fprintf(stderr, "ocrt_method: invalid method type: %d\n", type);
     }
 #endif
     return oc_method;
@@ -60,7 +59,7 @@ static Method ensure_method(const char *cls, const char *sel) {
     }
 #ifndef COMPACT
     if (oc_method == NULL) {
-        fprintf(stderr, "method not found!\n");
+        fprintf(stderr, "ensure_method: method not found!\n");
     }
 #endif
     return oc_method;
