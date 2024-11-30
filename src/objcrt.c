@@ -40,12 +40,12 @@ int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *
     return 0;
 }
 
-int ocrt_hook(const char *cls, const char *sel, void *destnation, void **origin) {
+int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin) {
     Method oc_method = ensure_method(cls, sel);
     if (oc_method == NULL) {
         return 1;
     }
-    void *origin_imp = method_setImplementation(oc_method, destnation);
+    void *origin_imp = method_setImplementation(oc_method, destination);
     if (origin != NULL) {
         *origin = origin_imp;
     }
