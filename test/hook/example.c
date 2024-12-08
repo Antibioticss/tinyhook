@@ -20,11 +20,17 @@ int fake_add(int a, int b) {
     return -1;
 }
 
+__attribute__((visibility("default"))) void exported_func() { return; }
+
 __attribute__((constructor(0))) int load() {
     fprintf(stderr, "=== libexample loading...\n");
 
+    // get an exported symbol address
+    void *func_fake = symexp_solve(1, "_exported_func");
+    fprintf(stderr, "=== exported_func() address: %p\n", func_fake);
+
     // hook a function by symbol
-    void *func_add = sym_solve(0, "_add");
+    void *func_add = symtbl_solve(0, "_add");
     fprintf(stderr, "=== add() address: %p\n", func_add);
     tiny_insert(func_add, fake_add, false);
 

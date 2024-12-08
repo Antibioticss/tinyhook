@@ -7,16 +7,16 @@
 #include <printf.h> // fprintf()
 #endif
 
-#include "../include/tinyhook.h"
+#include "../../include/tinyhook.h"
 
-void *sym_solve(uint32_t image_index, const char *symbol_name) {
+void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
     void *symbol_address = NULL;
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
 #ifndef COMPACT
     if (mh_header == NULL) {
-        fprintf(stderr, "sym_solve: image_index out of range!\n");
+        fprintf(stderr, "symtbl_solve: image_index out of range!\n");
     }
 #endif
     struct symtab_command *symtab_cmd = NULL;
@@ -51,5 +51,10 @@ void *sym_solve(uint32_t image_index, const char *symbol_name) {
     if (symbol_address != NULL) {
         symbol_address += image_slide;
     }
+#ifndef COMPACT
+    else {
+        fprintf(stderr, "symtbl_solve: symbol not found!\n");
+    }
+#endif
     return symbol_address;
 }

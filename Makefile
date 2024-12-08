@@ -5,7 +5,7 @@ export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
 CC := clang -arch $(ARCH)
 CFLAGS := -O3 -Wall
 
-SRC := src/*.c src/skip/*.c
+SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
 LIB := libtinyhook.a
 

@@ -35,7 +35,9 @@ int read_mem(void *destination, const void *source, size_t len);
 int write_mem(void *destination, const void *source, size_t len);
 
 /* solve symbol */
-void *sym_solve(uint32_t image_index, const char *symbol_name);
+void *symtbl_solve(uint32_t image_index, const char *symbol_name);
+
+void *symexp_solve(uint32_t image_index, const char *symbol_name);
 
 /* find in memory */
 // int find_code(uint32_t image_index, const unsigned char *code, size_t len, int count, void **out);
