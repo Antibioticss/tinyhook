@@ -2,8 +2,8 @@ ARCH ?= $(shell uname -m)
 OSX_VER ?= 10.15
 export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
 
-CC := clang -arch $(ARCH)
-CFLAGS := -O3 -Wall
+CFLAGS := -arch $(ARCH) -O3 -Wall
+ASFLAGS := -arch $(ARCH)
 
 SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
