@@ -3,11 +3,13 @@ OSX_VER ?= 10.15
 export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
 
 CFLAGS := -arch $(ARCH) -O3 -Wall
+LDFLAGS := -lobjc
 ASFLAGS := -arch $(ARCH)
 
 SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
-LIB := libtinyhook.a
+LIB_STATIC := libtinyhook.a
+LIB_SHARED := libtinyhook.dylib
 
 CFLAGS += $(if $(DEBUG),-g)
 CFLAGS += $(if $(COMPACT),-DCOMPACT)
@@ -15,17 +17,21 @@ ifeq ($(ARCH), x86_64)
 	OBJ += src/fde64/fde64.o
 endif
 
-.PHONY: build
-build: $(LIB)
+build: $(LIB_STATIC) $(LIB_SHARED)
 
-.PHONY: test
-test: $(LIB)
+$(LIB_STATIC): $(OBJ)
+	ar -rcs $@ $^
+
+$(LIB_SHARED): $(OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^
+
+test: $(LIB_STATIC)
 	cd test && $(MAKE) run ARCH=$(ARCH)
 
-$(LIB): $(OBJ)
-	ar rcs $@ $^
+all: build test
 
-.PHONY: clean
 clean:
 	cd test && $(MAKE) clean
-	rm -f $(LIB) $(OBJ) $(FDE)
+	rm -f $(LIB_STATIC) $(LIB_SHARED) $(OBJ) $(FDE)
+
+.PHONY: build test all clean

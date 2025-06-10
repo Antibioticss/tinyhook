@@ -15,7 +15,7 @@ main: main.o
 	$(CC) $(OBJCFLAGS) -lexample -L. $< -o $@
 
 libexample.dylib: example.o
-	$(CC) $(OBJCFLAGS) -shared -ltinyhook -L$(LIB_PATH) $< -o $@
+	$(CC) $(OBJCFLAGS) -shared $(LIB_PATH)/libtinyhook.a $< -o $@
 
 %.o: %.m
 	$(CC) $(CFLAGS) -c $< -o $@

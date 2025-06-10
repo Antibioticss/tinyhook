@@ -15,7 +15,7 @@ main: main.o
 	$(CC) $(CFLAGS) -lexample -L. $< -o $@
 
 libexample.dylib: example.o
-	$(CC) $(CFLAGS) -shared -ltinyhook -L$(LIB_PATH) $< -o $@
+	$(CC) $(CFLAGS) -shared $(LIB_PATH)/libtinyhook.a $< -o $@
 
 .PHONY: clean
 clean:
