@@ -1,11 +1,7 @@
 #include <objc/runtime.h> // objc_*, ...
 
-#ifndef COMPACT
-#include <mach/mach_error.h> // mach_error_string()
-#include <printf.h>          // fprintf()
-#endif
-
 #include "../include/tinyhook.h"
+#include "private.h"
 
 Method ocrt_method(char type, const char *cls, const char *sel) {
     Method oc_method = NULL;
@@ -19,9 +15,7 @@ Method ocrt_method(char type, const char *cls, const char *sel) {
         oc_method = class_getInstanceMethod(oc_class, oc_selector);
         break;
     default:
-#ifndef COMPACT
-        fprintf(stderr, "ocrt_method: invalid method type: %d\n", type);
-#endif
+        LOG_ERROR("ocrt_method: invalid method type: %d", type);
         break;
     }
     return oc_method;
@@ -36,11 +30,9 @@ static inline Method ensure_method(const char *cls, const char *sel) {
     if (oc_method == NULL) {
         oc_method = ocrt_method('-', cls, sel);
     }
-#ifndef COMPACT
     if (oc_method == NULL) {
-        fprintf(stderr, "ensure_method: method not found!\n");
+        LOG_ERROR("ensure_method: method not found!");
     }
-#endif
     return oc_method;
 }
 

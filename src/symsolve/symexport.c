@@ -3,11 +3,8 @@
 #include <mach-o/nlist.h>  // nlist_64
 #include <string.h>        // strcmp()
 
-#ifndef COMPACT
-#include <printf.h> // fprintf()
-#endif
-
 #include "../../include/tinyhook.h"
+#include "../private.h"
 
 static void *trie_query(const uint8_t *export, const char *name);
 
@@ -16,11 +13,9 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
-#ifndef COMPACT
     if (mh_header == NULL) {
-        fprintf(stderr, "symexp_solve: image_index out of range!\n");
+        LOG_ERROR("symexp_solve: image_index out of range!");
     }
-#endif
     struct dyld_info_command *dyldinfo_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
     for (int i = 0; i < mh_header->ncmds; i++) {
@@ -38,9 +33,7 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
         ld_command = (void *)ld_command + ld_command->cmdsize;
     }
     if (dyldinfo_cmd == NULL) {
-#ifndef COMPACT
-        fprintf(stderr, "symexp_solve: LC_DYLD_INFO_ONLY segment not found!\n");
-#endif
+        LOG_ERROR("symexp_solve: LC_DYLD_INFO_ONLY segment not found!");
         return NULL;
     }
     // stroff and strtbl are in the __LINKEDIT segment
@@ -51,12 +44,9 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
 
     if (symbol_address != NULL) {
         symbol_address += image_slide;
+    } else {
+        LOG_ERROR("symexp_solve: symbol not found!");
     }
-#ifndef COMPACT
-    else {
-        fprintf(stderr, "symexp_solve: symbol not found!\n");
-    }
-#endif
     return symbol_address;
 }
 
