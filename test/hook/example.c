@@ -32,7 +32,7 @@ __attribute__((constructor(0))) int load() {
     // hook a function by symbol
     void *func_add = symtbl_solve(0, "_add");
     fprintf(stderr, "=== add() address: %p\n", func_add);
-    tiny_insert(func_add, fake_add, false);
+    tiny_hook(func_add, fake_add, NULL);
 
     // hook system function
     tiny_hook(printf, my_printf, (void **)&orig_printf);

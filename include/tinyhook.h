@@ -13,9 +13,7 @@ extern "C" {
 /* inline hook */
 int tiny_hook(void *function, void *destination, void **origin);
 
-int tiny_insert(void *address, void *destination, bool link);
-
-int tiny_insert_far(void *address, void *destination, bool link);
+int tiny_insert(void *address, void *destination);
 
 /* objective-c runtime */
 int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin);

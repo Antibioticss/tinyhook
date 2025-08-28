@@ -14,18 +14,9 @@ hook `function` to `destination`, store the original pointer in `origin`
 int tiny_hook(void *function, void *destination, void **origin);
 
 /*
-insert a jump code at `address`
-- `link` == true  -> bl / call
-- `link` == false -> b  / jmp
+insert a function call at `address`, auto select far or near
 */
-int tiny_insert(void *address, void *destination, bool link);
-
-/*
-insert a further jump code at `address`
-- `link` == true  -> adrp+blr / call [rip]
-- `link` == false -> adrp+br  / jmp  [rip]
-*/
-int tiny_insert_far(void *address, void *destination, bool link);
+int tiny_insert(void *address, void *destination);
 ```
 
 ### Objective-C runtime hook

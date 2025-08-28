@@ -1,8 +1,8 @@
 ARCH ?= $(shell uname -m)
 
 CC := clang -arch $(ARCH)
-CFLAGS := -O0 -Wall
-OBJCFLAGS := -framework Cocoa
+CFLAGS := -O0 -Wall -g # -fsanitize=address
+OBJCFLAGS := -framework Cocoa # -fsanitize=address
 
 OBJ := example.o main.o
 LIB_PATH := ../..
