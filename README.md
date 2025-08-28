@@ -14,7 +14,7 @@ hook `function` to `destination`, store the original pointer in `origin`
 int tiny_hook(void *function, void *destination, void **origin);
 
 /*
-insert a function call at `address`, auto select far or near
+insert a function call (bl / call) at `address`, auto select far or near
 */
 int tiny_insert(void *address, void *destination);
 ```
