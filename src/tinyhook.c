@@ -55,7 +55,7 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
 int position = 0;
 mach_vm_address_t vm;
 
-static bool need_far_jump(void *src, void *dst) {
+bool need_far_jump(void *src, void *dst) {
     long long distance = dst > src ? dst - src : src - dst;
 #ifdef __aarch64__
     return distance >= 128 * MB;

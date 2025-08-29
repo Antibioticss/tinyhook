@@ -10,8 +10,24 @@
 extern "C" {
 #endif
 
+#ifdef __aarch64__
+#define MAX_JUMP_SIZE 12
+#elif __x86_64__
+#define MAX_JUMP_SIZE 14
+#endif
+
+typedef struct {
+    void *address;
+    int jump_size;
+    uint8_t head_bak[MAX_JUMP_SIZE];
+} th_bak_t;
+
 /* inline hook */
 int tiny_hook(void *function, void *destination, void **origin);
+
+int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin);
+
+int tiny_unhook(th_bak_t *bak);
 
 int tiny_insert(void *address, void *destination);
 

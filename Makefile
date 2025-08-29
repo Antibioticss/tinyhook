@@ -3,7 +3,7 @@ OSX_VER ?= 10.15
 export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
 
 CFLAGS := -arch $(ARCH) -O3 -Wall # -fsanitize=address
-LDFLAGS := -lobjc # -fsanitize=address
+LDFLAGS := -flto -lobjc # -fsanitize=address
 ASFLAGS := -arch $(ARCH)
 
 SRC := $(shell find src -name "*.c")

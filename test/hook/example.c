@@ -6,13 +6,17 @@
 
 int (*orig_printf)(const char *format, ...);
 int my_printf(const char *format, ...) {
-    if (strcmp(format, "Hello, world!\n") == 0) {
-        fprintf(stderr, "=== printf hooked!\n");
-        return orig_printf("Hello, tinyhook!\n");
-    }
+    char prefix[] = "Hooked printf: ";
+    size_t new_fmt_len = strlen(format) + strlen(prefix);
+    char *new_format = malloc(new_fmt_len + 1);
+    strcpy(new_format, prefix);
+    strcat(new_format, format);
     va_list args;
     va_start(args, format);
-    return vprintf(format, args);
+    int res = vprintf(new_format, args);
+    va_end(args);
+    free(new_format);
+    return res;
 }
 
 int fake_add(int a, int b) {
@@ -20,7 +24,9 @@ int fake_add(int a, int b) {
     return -1;
 }
 
-__attribute__((visibility("default"))) void exported_func() { return; }
+__attribute__((visibility("default"))) void exported_func() {
+    return;
+}
 
 __attribute__((constructor(0))) int load() {
     fprintf(stderr, "=== libexample loading...\n");
@@ -35,6 +41,13 @@ __attribute__((constructor(0))) int load() {
     tiny_hook(func_add, fake_add, NULL);
 
     // hook system function
-    tiny_hook(printf, my_printf, (void **)&orig_printf);
+    fprintf(stderr, "=== Hooking printf\n");
+    th_bak_t printf_bak;
+    tiny_hook_ex(&printf_bak, printf, my_printf, (void **)&orig_printf);
+    printf("Hello, world!\n");
+    // remove hook
+    fprintf(stderr, "=== Removing hook\n");
+    tiny_unhook(&printf_bak);
+    printf("Hook is removed!\n");
     return 0;
 }
