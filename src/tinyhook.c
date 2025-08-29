@@ -55,7 +55,7 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
 int position = 0;
 mach_vm_address_t vm;
 
-bool need_far_jump(void *src, void *dst) {
+static bool need_far_jump(void *src, void *dst) {
     long long distance = dst > src ? dst - src : src - dst;
 #ifdef __aarch64__
     return distance >= 128 * MB;
@@ -99,7 +99,7 @@ static int save_head(void *src, void *dst, size_t min_len, int *skip_lenp, int *
     for (; skip_len < min_len; skip_len += insn.len) {
         uint64_t cur_addr = (uint64_t)src + skip_len;
         decode(bytes_in + skip_len, &insn);
-        if (insn.opcode == 0x8B && insn.modrm_rm == RM_DISP32) {
+        if (insn.opcode == 0x8b && insn.modrm_rm == RM_DISP32) {
             // mov r64, [rip+]
             // split it into 2 instructions
             // mov r64 $rip+(immediate)

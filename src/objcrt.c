@@ -25,7 +25,7 @@ void *ocrt_impl(char type, const char *cls, const char *sel) {
     return method_getImplementation(ocrt_method(type, cls, sel));
 }
 
-static inline Method ensure_method(const char *cls, const char *sel) {
+static Method ensure_method(const char *cls, const char *sel) {
     Method oc_method = ocrt_method('+', cls, sel);
     if (oc_method == NULL) {
         oc_method = ocrt_method('-', cls, sel);
