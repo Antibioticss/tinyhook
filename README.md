@@ -18,7 +18,8 @@ create a backup of original function head after hooking
 then use `tiny_unhook` to remove the hook
  */
 int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin);
-int tiny_unhook(th_bak_t *bak);
+
+int tiny_unhook_ex(th_bak_t *bak);
 
 /*
 insert a function call (bl / call) at `address`, auto select far or near

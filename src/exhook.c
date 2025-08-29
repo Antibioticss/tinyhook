@@ -17,6 +17,6 @@ int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin
     return tiny_hook(function, destination, origin);
 }
 
-int tiny_unhook(th_bak_t *bak) {
+int tiny_unhook_ex(th_bak_t *bak) {
     return write_mem(bak->address, bak->head_bak, bak->jump_size);
 }

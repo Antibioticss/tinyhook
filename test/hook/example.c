@@ -47,7 +47,7 @@ __attribute__((constructor(0))) int load() {
     printf("Hello, world!\n");
     // remove hook
     fprintf(stderr, "=== Removing hook\n");
-    tiny_unhook(&printf_bak);
+    tiny_unhook_ex(&printf_bak);
     printf("Hook is removed!\n");
     return 0;
 }
