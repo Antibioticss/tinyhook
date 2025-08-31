@@ -8,6 +8,38 @@ on:
 
 jobs:
   build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build macos libraries
+        run: ./build.sh macos
+
+      - name: upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinyhook-osx-universal
+          path: |
+            libtinyhook.a
+            libtinyhook.dylib
+            include/tinyhook.h
+          compression-level: 9
+
+      - name: build ios libraries
+        run: ./build.sh ios
+
+      - name: upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinyhook-ios
+          path: |
+            libtinyhook.a
+            libtinyhook.dylib
+            include/tinyhook.h
+          compression-level: 9
+
+  test:
     strategy:
       matrix:
         include:
@@ -20,16 +52,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: build libraries
-        run: |
-          make
-          zip -j -9 tinyhook-${{ matrix.arch }}.zip libtinyhook.a libtinyhook.dylib include/tinyhook.h
 
       - name: run test
         run: make test
-
-      - name: upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: tinyhook-${{ matrix.arch }}
-          path: tinyhook-${{ matrix.arch }}.zip

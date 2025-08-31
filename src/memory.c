@@ -1,9 +1,7 @@
-#include <mach/mach_init.h> // mach_task_self()
-#include <mach/mach_vm.h>   // mach_vm_*
-#include <string.h>         // memcpy()
-
 #include "../include/tinyhook.h"
 #include "private.h"
+
+#include <string.h> // memcpy()
 
 int read_mem(void *destination, const void *source, size_t len) {
     int kr = 0;

@@ -4,8 +4,6 @@
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
-#include <mach/mach_init.h> // mach_task_self()
-#include <mach/mach_vm.h>   // mach_vm_*
 #include <stdint.h>
 #include <string.h>
 

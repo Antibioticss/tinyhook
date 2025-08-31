@@ -12,3 +12,4 @@ AllowShortIfStatementsOnASingleLine: true
 BreakBeforeBraces: Custom
 BraceWrapping:
   BeforeElse: true
+IndentPPDirectives: BeforeHash

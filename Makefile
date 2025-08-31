@@ -1,10 +1,20 @@
 ARCH ?= $(shell uname -m)
+TARGET ?= macosx
 OSX_VER ?= 10.15
-export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
+IOS_VER ?= 12.0
 
 CFLAGS := -arch $(ARCH) -O3 -Wall # -fsanitize=address
 LDFLAGS := -flto -lobjc # -fsanitize=address
 ASFLAGS := -arch $(ARCH)
+
+ifeq ($(TARGET), macosx)
+	export MACOSX_DEPLOYMENT_TARGET=$(OSX_VER)
+endif
+
+ifeq ($(TARGET), iphoneos)
+	export IPHONEOS_DEPLOYMENT_TARGET=$(IOS_VER)
+	CFLAGS += -isysroot $(shell xcrun --sdk $(TARGET) --show-sdk-path)
+endif
 
 SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
@@ -17,7 +27,11 @@ ifeq ($(ARCH), x86_64)
 	OBJ += src/fde64/fde64.o
 endif
 
-build: $(LIB_STATIC) $(LIB_SHARED)
+all: static shared
+
+static: $(LIB_STATIC)
+
+shared: $(LIB_SHARED)
 
 $(LIB_STATIC): $(OBJ)
 	ar -rcs $@ $^
@@ -28,10 +42,8 @@ $(LIB_SHARED): $(OBJ)
 test: $(LIB_STATIC)
 	cd test && $(MAKE) run ARCH=$(ARCH)
 
-all: build test
-
 clean:
 	cd test && $(MAKE) clean
 	rm -f $(LIB_STATIC) $(LIB_SHARED) $(OBJ) $(FDE)
 
-.PHONY: build test all clean
+.PHONY: all static shared test clean

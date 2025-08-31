@@ -1,7 +1,7 @@
 #ifndef tinyhook_h
 #define tinyhook_h
 
-#include <objc/objc-runtime.h>
+#include <objc/runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

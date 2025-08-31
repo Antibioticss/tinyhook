@@ -1,7 +1,7 @@
-#include <objc/runtime.h> // objc_*, ...
-
 #include "../include/tinyhook.h"
 #include "private.h"
+
+#include <objc/runtime.h> // objc_*, ...
 
 Method ocrt_method(char type, const char *cls, const char *sel) {
     Method oc_method = NULL;

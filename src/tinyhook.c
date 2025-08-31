@@ -1,13 +1,11 @@
 #include "../include/tinyhook.h"
 #include "private.h"
 
-#include <mach/mach_init.h> // mach_task_self()
-#include <mach/mach_vm.h>   // mach_vm_*
 #include <stdint.h>
 #include <string.h> // memcpy()
 
 #ifdef __x86_64__
-#include "fde64/fde64.h"
+    #include "fde64/fde64.h"
 #endif
 
 static int calc_near_jump(uint8_t *output, void *src, void *dst, bool link) {
