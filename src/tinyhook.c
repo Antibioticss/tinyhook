@@ -52,9 +52,6 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
     return jump_size;
 }
 
-int position = 0;
-mach_vm_address_t vm;
-
 bool need_far_jump(void *src, void *dst) {
     long long distance = dst > src ? dst - src : src - dst;
 #ifdef __aarch64__
@@ -111,7 +108,8 @@ static int save_head(void *src, void *dst, size_t min_len, int *skip_lenp, int *
             *(uint16_t *)(bytes_out + head_len) = X86_64_MOV_RM64;
             bytes_out[head_len + 2] = insn.modrm_reg << 3 | insn.modrm_reg;
             head_len += 3;
-        } else {
+        }
+        else {
             memcpy(bytes_out + head_len, bytes_in + skip_len, insn.len);
             head_len += insn.len;
         }
@@ -133,22 +131,25 @@ int tiny_hook(void *src, void *dst, void **orig) {
     if (orig == NULL) {
         jump_size = calc_jump(jump_insns, src, dst, false);
         kr = write_mem(src, jump_insns, jump_size);
-    } else {
-        if (!position) {
+    }
+    else {
+        static int position = 0;
+        static mach_vm_address_t trampoline = 0;
+        if (!trampoline) {
             // alloc a vm to store headers and jumps
-            kr = mach_vm_allocate(mach_task_self(), &vm, PAGE_SIZE, VM_FLAGS_ANYWHERE);
+            kr = mach_vm_allocate(mach_task_self(), &trampoline, PAGE_SIZE, VM_FLAGS_ANYWHERE);
             if (kr != 0) {
                 LOG_ERROR("mach_vm_allocate: %s", mach_error_string(kr));
             }
         }
         int skip_len, head_len;
-        *orig = (void *)(vm + position);
+        *orig = (void *)(trampoline + position);
         jump_size = calc_jump(jump_insns, src, dst, false);
-        kr |= save_head(src, (void *)(vm + position), jump_size, &skip_len, &head_len);
+        kr |= save_head(src, (void *)(trampoline + position), jump_size, &skip_len, &head_len);
         kr |= write_mem(src, jump_insns, jump_size);
         position += head_len;
-        jump_size += calc_jump(jump_insns, (void *)(vm + position), src + skip_len, false);
-        kr |= write_mem((void *)(vm + position), jump_insns, jump_size);
+        jump_size += calc_jump(jump_insns, (void *)(trampoline + position), src + skip_len, false);
+        kr |= write_mem((void *)(trampoline + position), jump_insns, jump_size);
         position += jump_size;
     }
     return kr;

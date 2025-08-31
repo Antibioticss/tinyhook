@@ -36,7 +36,8 @@ static void *trie_query(const uint8_t *export, const char *name) {
                 }
             }
             break;
-        } else {
+        }
+        else {
             go_child = false;
             cur_pos = child_off;
             uint8_t child_count = *(uint8_t *)cur_pos++;
@@ -73,7 +74,8 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
             if (strcmp(segment->segname, "__LINKEDIT") == 0) {
                 linkedit_cmd = (struct segment_command_64 *)ld_command;
             }
-        } else if (ld_command->cmd == LC_DYLD_INFO_ONLY || ld_command->cmd == LC_DYLD_INFO) {
+        }
+        else if (ld_command->cmd == LC_DYLD_INFO_ONLY || ld_command->cmd == LC_DYLD_INFO) {
             dyldinfo_cmd = (struct dyld_info_command *)ld_command;
             if (linkedit_cmd != NULL) {
                 break;
@@ -87,13 +89,14 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     }
     // stroff and strtbl are in the __LINKEDIT segment
     // Its offset will change when loaded into the memory, so we need to add this slide
-    intptr_t linkedit_slide = linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
-    uint8_t *export_offset = (uint8_t *)image_slide + linkedit_slide + dyldinfo_cmd->export_off;
+    intptr_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    uint8_t *export_offset = (uint8_t *)linkedit_base + dyldinfo_cmd->export_off;
     symbol_address = trie_query(export_offset, symbol_name);
 
     if (symbol_address != NULL) {
         symbol_address += image_slide;
-    } else {
+    }
+    else {
         LOG_ERROR("symexp_solve: symbol not found!");
     }
     return symbol_address;

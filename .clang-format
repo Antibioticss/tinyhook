@@ -7,5 +7,8 @@ Language: Cpp
 # Force pointers to the type for C++.
 ColumnLimit: 120
 AlignConsecutiveMacros: AcrossEmptyLines
-AllowShortFunctionsOnASingleLine: None
-...
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: true

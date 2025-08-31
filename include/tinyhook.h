@@ -31,6 +31,9 @@ int tiny_unhook_ex(th_bak_t *bak);
 
 int tiny_insert(void *address, void *destination);
 
+/* interpose */
+int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement);
+
 /* objective-c runtime */
 int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin);
 

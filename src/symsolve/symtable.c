@@ -22,7 +22,8 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
             if (strcmp(segment->segname, "__LINKEDIT") == 0) {
                 linkedit_cmd = (struct segment_command_64 *)ld_command;
             }
-        } else if (ld_command->cmd == LC_SYMTAB) {
+        }
+        else if (ld_command->cmd == LC_SYMTAB) {
             symtab_cmd = (struct symtab_command *)ld_command;
             if (linkedit_cmd != NULL) {
                 break;
@@ -32,9 +33,9 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
     }
     // stroff and strtbl are in the __LINKEDIT segment
     // Its offset will change when loaded into the memory, so we need to add this slide
-    intptr_t linkedit_slide = linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
-    struct nlist_64 *nl_tbl = (void *)image_slide + linkedit_slide + symtab_cmd->symoff;
-    char *str_tbl = (void *)image_slide + linkedit_slide + symtab_cmd->stroff;
+    intptr_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    struct nlist_64 *nl_tbl = (void *)linkedit_base + symtab_cmd->symoff;
+    char *str_tbl = (void *)linkedit_base + symtab_cmd->stroff;
     for (int j = 0; j < symtab_cmd->nsyms; j++) {
         if ((nl_tbl[j].n_type & N_TYPE) == N_SECT) {
             if (strcmp(symbol_name, str_tbl + nl_tbl[j].n_un.n_strx) == 0) {
@@ -45,7 +46,8 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
     }
     if (symbol_address != NULL) {
         symbol_address += image_slide;
-    } else {
+    }
+    else {
         LOG_ERROR("symtbl_solve: symbol not found!");
     }
     return symbol_address;

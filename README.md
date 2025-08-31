@@ -21,9 +21,10 @@ int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin
 
 int tiny_unhook_ex(th_bak_t *bak);
 
-/*
-insert a function call (bl / call) at `address`, auto select far or near
-*/
+/* interpose a symbol in a given image */
+int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement);
+
+/* insert a function call (bl / call) at `address`, auto select far or near */
 int tiny_insert(void *address, void *destination);
 ```
 

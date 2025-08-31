@@ -25,6 +25,7 @@ int fake_add(int a, int b) {
 }
 
 __attribute__((visibility("default"))) void exported_func() {
+    printf("This is an exported function\n");
     return;
 }
 
@@ -32,8 +33,9 @@ __attribute__((constructor(0))) int load() {
     fprintf(stderr, "=== libexample loading...\n");
 
     // get an exported symbol address
-    void *func_fake = symexp_solve(1, "_exported_func");
+    void (*func_fake)(void) = symexp_solve(1, "_exported_func");
     fprintf(stderr, "=== exported_func() address: %p\n", func_fake);
+    func_fake();
 
     // hook a function by symbol
     void *func_add = symtbl_solve(0, "_add");
@@ -49,5 +51,9 @@ __attribute__((constructor(0))) int load() {
     fprintf(stderr, "=== Removing hook\n");
     tiny_unhook_ex(&printf_bak);
     printf("Hook is removed!\n");
+
+    // or use interpose to hook it!
+    fprintf(stderr, "=== Now interposing printf\n");
+    tiny_interpose(0, "_printf", my_printf);
     return 0;
 }
