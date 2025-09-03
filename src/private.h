@@ -4,7 +4,9 @@
 #include <TargetConditionals.h>
 
 #include <mach/mach_init.h> // mach_task_self()
-#if TARGET_OS_IPHONE
+#if TARGET_OS_OSX
+    #include <mach/mach_vm.h> // mach_vm_*
+#elif TARGET_OS_IOS
     #include <mach/vm_map.h> // vm_*
     #define mach_vm_address_t  vm_address_t
     #define mach_vm_allocate   vm_allocate
@@ -12,8 +14,6 @@
     #define mach_vm_read       vm_read
     #define mach_vm_write      vm_write
     #define mach_vm_protect    vm_protect
-#elif TARGET_OS_MAC
-    #include <mach/mach_vm.h> // mach_vm_*
 #endif
 
 #ifdef COMPACT

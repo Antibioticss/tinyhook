@@ -61,8 +61,8 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
         void **sym_ptrs = (void *)sym_sec->addr + image_slide;
         uint32_t *indirect_sym_entry = indirect_sym_tbl + sym_sec->reserved1; // reserved1 is an index!
         int nptrs = sym_sec->size / sizeof(void *);
-        for (int i = 0; i < nptrs; i++) {
-            uint32_t symtab_index = indirect_sym_entry[i];
+        for (int j = 0; j < nptrs; j++) {
+            uint32_t symtab_index = indirect_sym_entry[j];
             if (symtab_index == INDIRECT_SYMBOL_LOCAL ||
                 symtab_index == (INDIRECT_SYMBOL_LOCAL | INDIRECT_SYMBOL_ABS)) {
                 continue;
@@ -74,7 +74,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                                           VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
                     if (err != 0) goto exit;
                 }
-                sym_ptrs[i] = replacement;
+                sym_ptrs[j] = replacement;
                 goto exit;
             }
         }
