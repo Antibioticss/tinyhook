@@ -68,6 +68,7 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     }
     struct dyld_info_command *dyldinfo_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
+    struct linkedit_data_command *export_trie = NULL;
     for (int i = 0; i < mh_header->ncmds; i++) {
         if (ld_command->cmd == LC_SEGMENT_64) {
             const struct segment_command_64 *segment = (struct segment_command_64 *)ld_command;
@@ -77,15 +78,13 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
         }
         else if (ld_command->cmd == LC_DYLD_INFO_ONLY || ld_command->cmd == LC_DYLD_INFO) {
             dyldinfo_cmd = (struct dyld_info_command *)ld_command;
-            if (linkedit_cmd != NULL) {
-                break;
-            }
+            if (linkedit_cmd != NULL) break;
+        }
+        else if (ld_command->cmd == LC_DYLD_EXPORTS_TRIE) {
+            export_trie = (struct linkedit_data_command *)ld_command;
+            if (linkedit_cmd != NULL) break;
         }
         ld_command = (void *)ld_command + ld_command->cmdsize;
-    }
-    if (dyldinfo_cmd == NULL) {
-        LOG_ERROR("symexp_solve: LC_DYLD_INFO_ONLY segment not found!");
-        return NULL;
     }
     if (linkedit_cmd == NULL) {
         LOG_ERROR("symexp_solve: __LINKEDIT segment not found!");
@@ -94,7 +93,15 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     // stroff and strtbl are in the __LINKEDIT segment
     // Its offset will change when loaded into the memory, so we need to add this slide
     uint64_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
-    uint8_t *export_offset = (uint8_t *)linkedit_base + dyldinfo_cmd->export_off;
+    uint8_t *export_offset;
+    if (dyldinfo_cmd != NULL)
+        export_offset = (uint8_t *)linkedit_base + dyldinfo_cmd->export_off;
+    else if (export_trie != NULL)
+        export_offset = (uint8_t *)linkedit_base + export_trie->dataoff;
+    else {
+        LOG_ERROR("symexp_solve: neither LC_DYLD_INFO_ONLY nor LC_DYLD_EXPORTS_TRIE load command found!");
+        return NULL;
+    }
     symbol_address = trie_query(export_offset, symbol_name);
 
     if (symbol_address != NULL) {

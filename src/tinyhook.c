@@ -60,14 +60,14 @@ bool need_far_jump(const void *src, const void *dst) {
 #endif
 }
 
-static size_t calc_jump(uint8_t *output, void *src, void *dst, bool link) {
+static int calc_jump(uint8_t *output, void *src, void *dst, bool link) {
     if (need_far_jump(src, dst))
         return calc_far_jump(output, src, dst, link);
     else
         return calc_near_jump(output, src, dst, link);
 }
 
-static int save_head(void *src, void *dst, size_t min_len, int *skip_lenp, int *head_lenp) {
+static int save_head(void *src, void *dst, int min_len, int *skip_lenp, int *head_lenp) {
     int skip_len = 0; // insns(to be overwritten) len from src
     int head_len = 0; // rewritten insns len to dst
 #ifdef __aarch64__
