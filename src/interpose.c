@@ -21,18 +21,18 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
             if (strcmp(segment->segname, "__DATA_CONST") == 0) {
                 if (sym_sects[0]) continue;
                 struct section_64 *data_const_sect = (void *)(segment + 1);
-                for (int i = 0; i < segment->nsects; i++) {
-                    if ((data_const_sect[i].flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
-                        sym_sects[0] = data_const_sect + i; // __nl_symbol_ptr
+                for (int j = 0; j < segment->nsects; j++) {
+                    if ((data_const_sect[j].flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
+                        sym_sects[0] = data_const_sect + j; // __nl_symbol_ptr
                     }
                 }
             }
             else if (strcmp(segment->segname, "__DATA") == 0) {
                 if (sym_sects[1]) continue;
                 struct section_64 *data_sect = (void *)(segment + 1);
-                for (int i = 0; i < segment->nsects; i++) {
-                    if ((data_sect[i].flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
-                        sym_sects[1] = data_sect + i; // __la_symbol_ptr
+                for (int j = 0; j < segment->nsects; j++) {
+                    if ((data_sect[j].flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
+                        sym_sects[1] = data_sect + j; // __la_symbol_ptr
                     }
                 }
             }
@@ -48,7 +48,11 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
         }
         ld_command = (void *)ld_command + ld_command->cmdsize;
     }
-    intptr_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    if (linkedit_cmd == NULL || symtab_cmd == NULL || dysymtab_cmd == NULL) {
+        LOG_ERROR("tiny_interpose: bad mach-o structure!");
+        return 1;
+    }
+    uint64_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
     char *str_tbl = (void *)linkedit_base + symtab_cmd->stroff;
     struct nlist_64 *nl_tbl = (void *)linkedit_base + symtab_cmd->symoff;
     uint32_t *indirect_sym_tbl = (void *)linkedit_base + dysymtab_cmd->indirectsymoff;
@@ -60,7 +64,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
         if (!sym_sec) continue;
         void **sym_ptrs = (void *)sym_sec->addr + image_slide;
         uint32_t *indirect_sym_entry = indirect_sym_tbl + sym_sec->reserved1; // reserved1 is an index!
-        int nptrs = sym_sec->size / sizeof(void *);
+        size_t nptrs = sym_sec->size / sizeof(void *);
         for (int j = 0; j < nptrs; j++) {
             uint32_t symtab_index = indirect_sym_entry[j];
             if (symtab_index == INDIRECT_SYMBOL_LOCAL ||

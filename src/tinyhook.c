@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <string.h> // memcpy()
+#ifndef COMPACT
+#include <mach/mach_error.h> // mach_error_string()
+#endif
 
 #ifdef __x86_64__
     #include "fde64/fde64.h"
@@ -13,8 +16,7 @@ static int calc_near_jump(uint8_t *output, void *src, void *dst, bool link) {
 #ifdef __aarch64__
     // b/bl imm    ; go to dst
     jump_size = 4;
-    uint32_t insn;
-    insn = (dst - src) >> 2 & 0x3ffffff;
+    uint32_t insn = (dst - src) >> 2 & 0x3ffffff;
     insn |= link ? AARCH64_BL : AARCH64_B;
     *(uint32_t *)output = insn;
 #elif __x86_64__
@@ -33,8 +35,7 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
     // add     x17, x17, imm    ; x17 -> dst
     // br/blr  x17
     jump_size = 12;
-    uint32_t insn;
-    insn = (((int64_t)dst >> 12) - ((int64_t)src >> 12)) & 0x1fffff;
+    uint32_t insn = (((int64_t)dst >> 12) - ((int64_t)src >> 12)) & 0x1fffff;
     insn = ((insn & 0x3) << 29) | (insn >> 2 << 5) | AARCH64_ADRP;
     *(uint32_t *)output = insn;
     insn = ((int64_t)dst & 0xfff) << 10 | AARCH64_ADD;
@@ -50,7 +51,7 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
     return jump_size;
 }
 
-bool need_far_jump(void *src, void *dst) {
+bool need_far_jump(const void *src, const void *dst) {
     long long distance = dst > src ? dst - src : src - dst;
 #ifdef __aarch64__
     return distance >= 128 * MB;

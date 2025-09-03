@@ -20,6 +20,7 @@
 *.dSYM
 *.dylib
 .zed
+.idea
 .vscode
 example
 infer-out

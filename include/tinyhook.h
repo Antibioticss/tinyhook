@@ -2,8 +2,6 @@
 #define tinyhook_h
 
 #include <objc/runtime.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -27,7 +25,7 @@ int tiny_hook(void *function, void *destination, void **origin);
 
 int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin);
 
-int tiny_unhook_ex(th_bak_t *bak);
+int tiny_unhook_ex(const th_bak_t *bak);
 
 int tiny_insert(void *address, void *destination);
 

@@ -2,6 +2,9 @@
 #include "private.h"
 
 #include <string.h> // memcpy()
+#ifndef COMPACT
+#include <mach/mach_error.h> // mach_error_string()
+#endif
 
 int read_mem(void *destination, const void *source, size_t len) {
     int kr = 0;

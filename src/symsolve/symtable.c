@@ -31,9 +31,13 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
         }
         ld_command = (void *)ld_command + ld_command->cmdsize;
     }
+    if (linkedit_cmd == NULL || symtab_cmd == NULL) {
+        LOG_ERROR("symtbl_solve: bad mach-o structure!");
+        return NULL;
+    }
     // stroff and strtbl are in the __LINKEDIT segment
     // Its offset will change when loaded into the memory, so we need to add this slide
-    intptr_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    uint64_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
     struct nlist_64 *nl_tbl = (void *)linkedit_base + symtab_cmd->symoff;
     char *str_tbl = (void *)linkedit_base + symtab_cmd->stroff;
     for (int j = 0; j < symtab_cmd->nsyms; j++) {

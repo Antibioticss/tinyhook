@@ -19,7 +19,6 @@
 #ifdef COMPACT
     #define LOG_ERROR(fmt, ...) ((void)0)
 #else
-    #include <mach/mach_error.h> // mach_error_string()
     #include <printf.h>          // fprintf()
     #define LOG_ERROR(fmt, ...) fprintf(stderr, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #endif
@@ -44,6 +43,6 @@
     #define X86_64_MOV_RM64 0x8b48     // mov      r64, [r64]
 #endif
 
-bool need_far_jump(void *src, void *dst);
+bool need_far_jump(const void *src, const void *dst);
 
 #endif
