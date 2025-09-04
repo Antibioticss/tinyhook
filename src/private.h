@@ -19,8 +19,8 @@
 #ifdef COMPACT
     #define LOG_ERROR(fmt, ...) ((void)0)
 #else
-    #include <printf.h>          // fprintf()
-    #define LOG_ERROR(fmt, ...) fprintf(stderr, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+    #include <printf.h> // fprintf()
+    #define LOG_ERROR(fmt, ...) (void)fprintf(stderr, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #endif
 
 #define MB (1ll << 20)

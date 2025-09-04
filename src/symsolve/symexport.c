@@ -105,7 +105,7 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     symbol_address = trie_query(export_offset, symbol_name);
 
     if (symbol_address != NULL) {
-        symbol_address += image_slide;
+        symbol_address += (uint64_t)mh_header;
     }
     else {
         LOG_ERROR("symexp_solve: symbol not found!");

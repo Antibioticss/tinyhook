@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h> // memcpy()
 #ifndef COMPACT
-#include <mach/mach_error.h> // mach_error_string()
+    #include <mach/mach_error.h> // mach_error_string()
 #endif
 
 #ifdef __x86_64__

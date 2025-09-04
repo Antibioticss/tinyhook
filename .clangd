@@ -1,0 +1,8 @@
+CompileFlags:
+  Add: [-xc, -O3, -Wall]
+  Compiler: clang
+
+Diagnostics:
+  ClangTidy:
+    Add: [bugprone-*, cert-*, modernize-*, performance-*]
+    FastCheckFilter: None
