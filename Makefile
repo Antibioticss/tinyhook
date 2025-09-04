@@ -3,7 +3,7 @@ TARGET ?= macosx
 OSX_VER ?= 10.15
 IOS_VER ?= 12.0
 
-CFLAGS := -arch $(ARCH) -O3 -Wall # -fsanitize=address
+CFLAGS := -arch $(ARCH) -O3 -Wall -Wshadow # -fsanitize=address
 LDFLAGS := -flto -lobjc # -fsanitize=address
 ASFLAGS := -arch $(ARCH)
 

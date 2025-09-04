@@ -92,12 +92,12 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     }
     // stroff and strtbl are in the __LINKEDIT segment
     // Its offset will change when loaded into the memory, so we need to add this slide
-    uint64_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    void *linkedit_base = (void *)image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
     uint8_t *export_offset;
     if (dyldinfo_cmd != NULL)
-        export_offset = (uint8_t *)linkedit_base + dyldinfo_cmd->export_off;
+        export_offset = linkedit_base + dyldinfo_cmd->export_off;
     else if (export_trie != NULL)
-        export_offset = (uint8_t *)linkedit_base + export_trie->dataoff;
+        export_offset = linkedit_base + export_trie->dataoff;
     else {
         LOG_ERROR("symexp_solve: neither LC_DYLD_INFO_ONLY nor LC_DYLD_EXPORTS_TRIE load command found!");
         return NULL;

@@ -19,8 +19,15 @@
 #ifdef COMPACT
     #define LOG_ERROR(fmt, ...) ((void)0)
 #else
-    #include <printf.h> // fprintf()
-    #define LOG_ERROR(fmt, ...) (void)fprintf(stderr, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+    #if TARGET_OS_OSX
+        #include <printf.h> // fprintf()
+        #define LOG_ERROR(fmt, ...) (void)fprintf(stderr, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+    #elif TARGET_OS_IOS
+        #include <os/log.h> // os_log()
+        #define LOG_ERROR(fmt, ...)                                                                                    \
+            os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__,        \
+                             ##__VA_ARGS__)
+    #endif
 #endif
 
 #define MB (1ll << 20)

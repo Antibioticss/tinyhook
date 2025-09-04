@@ -37,9 +37,9 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
     }
     // stroff and strtbl are in the __LINKEDIT segment
     // Its offset will change when loaded into the memory, so we need to add this slide
-    uint64_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
-    struct nlist_64 *nl_tbl = (void *)linkedit_base + symtab_cmd->symoff;
-    char *str_tbl = (void *)linkedit_base + symtab_cmd->stroff;
+    void *linkedit_base = (void *)image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    struct nlist_64 *nl_tbl = linkedit_base + symtab_cmd->symoff;
+    char *str_tbl = linkedit_base + symtab_cmd->stroff;
     for (int j = 0; j < symtab_cmd->nsyms; j++) {
         if ((nl_tbl[j].n_type & N_TYPE) == N_SECT) {
             if (strcmp(symbol_name, str_tbl + nl_tbl[j].n_un.n_strx) == 0) {

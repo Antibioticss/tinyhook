@@ -52,10 +52,10 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
         LOG_ERROR("tiny_interpose: bad mach-o structure!");
         return 1;
     }
-    uint64_t linkedit_base = image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
-    char *str_tbl = (void *)linkedit_base + symtab_cmd->stroff;
-    struct nlist_64 *nl_tbl = (void *)linkedit_base + symtab_cmd->symoff;
-    uint32_t *indirect_sym_tbl = (void *)linkedit_base + dysymtab_cmd->indirectsymoff;
+    void *linkedit_base = (void *)image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
+    char *str_tbl = linkedit_base + symtab_cmd->stroff;
+    struct nlist_64 *nl_tbl = linkedit_base + symtab_cmd->symoff;
+    uint32_t *indirect_sym_tbl = linkedit_base + dysymtab_cmd->indirectsymoff;
 
     int err = 0;
     bool found = 0;
