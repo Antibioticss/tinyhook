@@ -67,63 +67,56 @@ static int calc_jump(uint8_t *output, void *src, void *dst, bool link) {
         return calc_near_jump(output, src, dst, link);
 }
 
-static void save_head(void **src, void **dst, int min_len) {
-    // return header len (rewritten insns len to dst)
-    // int skip_len = 0; // insns(to be overwritten) len from src
-    // int head_len = 0; // rewritten insns len to dst
+static void *trampo;
+static mach_vm_address_t vmbase;
+
+static inline void save_header(void **src, void **dst, int min_len) {
+    mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_DEFAULT);
 #ifdef __aarch64__
-    // skip_len = min_len;
-    // head_len = min_len;
-    // uint8_t bytes_out[MAX_JUMP_SIZE];
-    // read_mem(bytes_out, src, MAX_JUMP_SIZE);
+    uint32_t insn;
     for (int i = 0; i < min_len; i += 4) {
-        uint32_t cur = *(uint32_t *)*src;
-        if (((cur ^ 0x90000000) & 0x9f000000) == 0) {
+        insn = *(uint32_t *)*src;
+        if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
             // modify the immediate
             // TODO: improve this
-            int32_t len = (cur >> 29 & 0x3) | ((cur >> 3) & 0x1ffffc);
+            int32_t len = (insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc);
             len += ((int64_t)*src >> 12) - ((int64_t)*dst >> 12);
-            cur &= 0x9f00001f; // clean the immediate
-            cur = ((len & 0x3) << 29) | (len >> 2 << 5) | cur;
+            insn &= 0x9f00001f; // clean the immediate
+            insn = ((len & 0x3) << 29) | (len >> 2 << 5) | insn;
         }
-        *(uint32_t *)*dst = cur;
+        *(uint32_t *)*dst = insn;
         *dst += 4;
         *src += 4;
     }
 #elif __x86_64__
     struct fde64s insn;
-    uint8_t bytes_in[MAX_JUMP_SIZE * 2], bytes_out[MAX_JUMP_SIZE * 4];
-    read_mem(bytes_in, src, MAX_JUMP_SIZE * 2);
-    for (; skip_len < min_len; skip_len += insn.len) {
-        uint64_t cur_addr = (uint64_t)src + skip_len;
-        decode(bytes_in + skip_len, &insn);
+    for (int i = 0; i < min_len; i += insn.len) {
+        decode(*src, &insn);
         if (insn.opcode == 0x8b && insn.modrm_rm == RM_DISP32) {
             // mov r64, [rip+]
             // split it into 2 instructions
             // mov r64 $rip+(immediate)
+            *(uint16_t *)*dst = X86_64_MOV_RI64;
+            *dst += sizeof(uint16_t);
+            *(uint8_t *)*dst = insn.modrm_reg;
+            *dst += sizeof(uint8_t);
+            *(uint64_t *)*dst = insn.disp32 + (uint64_t)*src + insn.len;
+            *dst += sizeof(uint64_t);
             // mov r64 [r64]
-            *(uint16_t *)(bytes_out + head_len++) = X86_64_MOV_RI64;
-            bytes_out[head_len++] += insn.modrm_reg;
-            *(uint64_t *)(bytes_out + head_len) = insn.disp32 + cur_addr + insn.len;
-            head_len += 8;
-            *(uint16_t *)(bytes_out + head_len) = X86_64_MOV_RM64;
-            bytes_out[head_len + 2] = insn.modrm_reg << 3 | insn.modrm_reg;
-            head_len += 3;
+            *(uint16_t *)*dst = X86_64_MOV_RM64;
+            *dst += sizeof(uint16_t);
+            *(uint8_t *)*dst = insn.modrm_reg << 3 | insn.modrm_reg;
+            *dst += sizeof(uint8_t);
         }
         else {
-            memcpy(bytes_out + head_len, bytes_in + skip_len, insn.len);
-            head_len += insn.len;
+            memcpy(*dst, *src, insn.len);
+            *dst += insn.len;
         }
+        *src += insn.len;
     }
 #endif
-    // *skip_lenp = skip_len;
-    // *head_lenp = head_len;
-    // int kr = write_mem(dst, bytes_out, head_len);
-    // if (kr != 0) {
-    //     LOG_ERROR("save_head: write_mem failed");
-    // }
-    // return kr;
+    mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
     return;
 }
 
@@ -136,29 +129,23 @@ int tiny_hook(void *src, void *dst, void **orig) {
         kr = write_mem(src, jump_insns, jump_size);
     }
     else {
-        // static int position = 0;
-        static mach_vm_address_t vmbase;
-        static void *trampoline;
-        if (!trampoline) {
+        if (!trampo) {
             // alloc a vm to store headers and jumps
             kr = mach_vm_allocate(mach_task_self(), &vmbase, PAGE_SIZE, VM_FLAGS_ANYWHERE);
             if (kr != 0) {
                 LOG_ERROR("mach_vm_allocate: %s", mach_error_string(kr));
                 return kr;
             }
-            trampoline = (void *)vmbase;
+            trampo = (void *)vmbase;
         }
-        // int skip_len, head_len;
         void *bak = src;
-        *orig = trampoline;
+        *orig = trampo;
         jump_size = calc_jump(jump_insns, src, dst, false);
-        mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_DEFAULT);
-        save_head(&bak, &trampoline, jump_size);
-        mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
+        save_header(&bak, &trampo, jump_size);
         kr |= write_mem(src, jump_insns, jump_size);
-        jump_size += calc_jump(jump_insns, trampoline, bak, false);
-        kr |= write_mem(trampoline, jump_insns, jump_size);
-        trampoline += jump_size;
+        jump_size += calc_jump(jump_insns, trampo, bak, false);
+        kr |= write_mem(trampo, jump_insns, jump_size);
+        trampo += jump_size;
     }
     return kr;
 }
