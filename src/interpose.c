@@ -24,6 +24,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                 for (int j = 0; j < segment->nsects; j++) {
                     if ((data_const_sect[j].flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
                         sym_sects[0] = data_const_sect + j; // __nl_symbol_ptr
+                        break;
                     }
                 }
             }
@@ -33,6 +34,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                 for (int j = 0; j < segment->nsects; j++) {
                     if ((data_sect[j].flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
                         sym_sects[1] = data_sect + j; // __la_symbol_ptr
+                        break;
                     }
                 }
             }

@@ -67,26 +67,29 @@ static int calc_jump(uint8_t *output, void *src, void *dst, bool link) {
         return calc_near_jump(output, src, dst, link);
 }
 
-static int save_head(void *src, void *dst, int min_len, int *skip_lenp, int *head_lenp) {
-    int skip_len = 0; // insns(to be overwritten) len from src
-    int head_len = 0; // rewritten insns len to dst
+static void save_head(void **src, void **dst, int min_len) {
+    // return header len (rewritten insns len to dst)
+    // int skip_len = 0; // insns(to be overwritten) len from src
+    // int head_len = 0; // rewritten insns len to dst
 #ifdef __aarch64__
-    skip_len = min_len;
-    head_len = min_len;
-    uint8_t bytes_out[MAX_JUMP_SIZE];
-    read_mem(bytes_out, src, MAX_JUMP_SIZE);
+    // skip_len = min_len;
+    // head_len = min_len;
+    // uint8_t bytes_out[MAX_JUMP_SIZE];
+    // read_mem(bytes_out, src, MAX_JUMP_SIZE);
     for (int i = 0; i < min_len; i += 4) {
-        uint32_t cur_asm = *(uint32_t *)(bytes_out + i);
-        int64_t cur_addr = (int64_t)src + i, cur_dst = (int64_t)dst + i;
-        if (((cur_asm ^ 0x90000000) & 0x9f000000) == 0) {
+        uint32_t cur = *(uint32_t *)*src;
+        if (((cur ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
             // modify the immediate
-            int32_t len = (cur_asm >> 29 & 0x3) | ((cur_asm >> 3) & 0x1ffffc);
-            len += (cur_addr >> 12) - (cur_dst >> 12);
-            cur_asm &= 0x9f00001f; // clean the immediate
-            cur_asm = ((len & 0x3) << 29) | (len >> 2 << 5) | cur_asm;
-            *(uint32_t *)(bytes_out + i) = cur_asm;
+            // TODO: improve this
+            int32_t len = (cur >> 29 & 0x3) | ((cur >> 3) & 0x1ffffc);
+            len += ((int64_t)*src >> 12) - ((int64_t)*dst >> 12);
+            cur &= 0x9f00001f; // clean the immediate
+            cur = ((len & 0x3) << 29) | (len >> 2 << 5) | cur;
         }
+        *(uint32_t *)*dst = cur;
+        *dst += 4;
+        *src += 4;
     }
 #elif __x86_64__
     struct fde64s insn;
@@ -114,13 +117,14 @@ static int save_head(void *src, void *dst, int min_len, int *skip_lenp, int *hea
         }
     }
 #endif
-    *skip_lenp = skip_len;
-    *head_lenp = head_len;
-    int kr = write_mem(dst, bytes_out, head_len);
-    if (kr != 0) {
-        LOG_ERROR("save_head: write_mem failed");
-    }
-    return kr;
+    // *skip_lenp = skip_len;
+    // *head_lenp = head_len;
+    // int kr = write_mem(dst, bytes_out, head_len);
+    // if (kr != 0) {
+    //     LOG_ERROR("save_head: write_mem failed");
+    // }
+    // return kr;
+    return;
 }
 
 int tiny_hook(void *src, void *dst, void **orig) {
@@ -132,24 +136,29 @@ int tiny_hook(void *src, void *dst, void **orig) {
         kr = write_mem(src, jump_insns, jump_size);
     }
     else {
-        static int position = 0;
-        static mach_vm_address_t trampoline = 0;
+        // static int position = 0;
+        static mach_vm_address_t vmbase;
+        static void *trampoline;
         if (!trampoline) {
             // alloc a vm to store headers and jumps
-            kr = mach_vm_allocate(mach_task_self(), &trampoline, PAGE_SIZE, VM_FLAGS_ANYWHERE);
+            kr = mach_vm_allocate(mach_task_self(), &vmbase, PAGE_SIZE, VM_FLAGS_ANYWHERE);
             if (kr != 0) {
                 LOG_ERROR("mach_vm_allocate: %s", mach_error_string(kr));
+                return kr;
             }
+            trampoline = (void *)vmbase;
         }
-        int skip_len, head_len;
-        *orig = (void *)(trampoline + position);
+        // int skip_len, head_len;
+        void *bak = src;
+        *orig = trampoline;
         jump_size = calc_jump(jump_insns, src, dst, false);
-        kr |= save_head(src, (void *)(trampoline + position), jump_size, &skip_len, &head_len);
+        mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_DEFAULT);
+        save_head(&bak, &trampoline, jump_size);
+        mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
         kr |= write_mem(src, jump_insns, jump_size);
-        position += head_len;
-        jump_size += calc_jump(jump_insns, (void *)(trampoline + position), src + skip_len, false);
-        kr |= write_mem((void *)(trampoline + position), jump_insns, jump_size);
-        position += jump_size;
+        jump_size += calc_jump(jump_insns, trampoline, bak, false);
+        kr |= write_mem(trampoline, jump_insns, jump_size);
+        trampoline += jump_size;
     }
     return kr;
 }
