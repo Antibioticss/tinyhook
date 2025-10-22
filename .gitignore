@@ -22,5 +22,6 @@
 .zed
 .idea
 .vscode
+build
 example
 infer-out

@@ -14,12 +14,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: build macos libraries
-        run: ./build.sh macos
+        run: rm -rf build && ./build.sh -t macosx
 
       - name: upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tinyhook-osx-universal
+          name: tinyhook-macosx
           path: |
             libtinyhook.a
             libtinyhook.dylib
@@ -27,12 +27,12 @@ jobs:
           compression-level: 9
 
       - name: build ios libraries
-        run: ./build.sh ios
+        run: rm -rf build && ./build.sh -t iphoneos
 
       - name: upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tinyhook-ios
+          name: tinyhook-iphoneos
           path: |
             libtinyhook.a
             libtinyhook.dylib

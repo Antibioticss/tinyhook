@@ -11,6 +11,15 @@
     #include "fde64/fde64.h"
 #endif
 
+bool need_far_jump(const void *src, const void *dst) {
+    long long distance = dst > src ? dst - src : src - dst;
+#ifdef __aarch64__
+    return distance >= 128 * MB;
+#elif __x86_64__
+    return distance >= 2 * GB;
+#endif
+}
+
 static int calc_near_jump(uint8_t *output, void *src, void *dst, bool link) {
     int jump_size;
 #ifdef __aarch64__
@@ -35,8 +44,8 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
     // add     x17, x17, imm    ; x17 -> dst
     // br/blr  x17
     jump_size = 12;
-    uint32_t insn = (((int64_t)dst >> 12) - ((int64_t)src >> 12)) & 0x1fffff;
-    insn = ((insn & 0x3) << 29) | (insn >> 2 << 5) | AARCH64_ADRP;
+    int64_t insn = ((int64_t)dst >> 12) - ((int64_t)src >> 12);
+    insn = ((insn & 0x3) << 29) | ((insn & 0x1ffffc) << 3) | AARCH64_ADRP;
     *(uint32_t *)output = insn;
     insn = ((int64_t)dst & 0xfff) << 10 | AARCH64_ADD;
     *(uint32_t *)(output + 4) = insn;
@@ -49,15 +58,6 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
     *(uint64_t *)(output + 6) = (uint64_t)dst;
 #endif
     return jump_size;
-}
-
-bool need_far_jump(const void *src, const void *dst) {
-    long long distance = dst > src ? dst - src : src - dst;
-#ifdef __aarch64__
-    return distance >= 128 * MB;
-#elif __x86_64__
-    return distance >= 2 * GB;
-#endif
 }
 
 static int calc_jump(uint8_t *output, void *src, void *dst, bool link) {
@@ -78,12 +78,11 @@ static inline void save_header(void **src, void **dst, int min_len) {
         insn = *(uint32_t *)*src;
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
-            // modify the immediate
-            // TODO: improve this
-            int32_t len = (insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc);
+            // modify the immediate (len 4 -> 4)
+            int64_t len = (insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc);
             len += ((int64_t)*src >> 12) - ((int64_t)*dst >> 12);
             insn &= 0x9f00001f; // clean the immediate
-            insn = ((len & 0x3) << 29) | (len >> 2 << 5) | insn;
+            insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
         }
         *(uint32_t *)*dst = insn;
         *dst += 4;
@@ -95,7 +94,8 @@ static inline void save_header(void **src, void **dst, int min_len) {
         decode(*src, &insn);
         if (insn.opcode == 0x8b && insn.modrm_rm == RM_DISP32) {
             // mov r64, [rip+]
-            // split it into 2 instructions
+            // split it into 2 instructions (len: 7 -> 11+3)
+
             // mov r64 $rip+(immediate)
             *(uint16_t *)*dst = X86_64_MOV_RI64;
             *dst += sizeof(uint16_t);
@@ -129,7 +129,8 @@ int tiny_hook(void *src, void *dst, void **orig) {
         kr = write_mem(src, jump_insns, jump_size);
     }
     else {
-        if (!trampo) {
+        // check if the space is enough
+        if (!trampo || ((uint64_t)trampo + MAX_JUMP_SIZE + MAX_HEAD_SIZE >= vmbase + PAGE_SIZE)) {
             // alloc a vm to store headers and jumps
             kr = mach_vm_allocate(mach_task_self(), &vmbase, PAGE_SIZE, VM_FLAGS_ANYWHERE);
             if (kr != 0) {

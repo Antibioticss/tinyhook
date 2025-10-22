@@ -9,9 +9,11 @@ extern "C" {
 #endif
 
 #ifdef __aarch64__
-#define MAX_JUMP_SIZE 12
+    #define MAX_JUMP_SIZE 12
+    #define MAX_HEAD_SIZE 12
 #elif __x86_64__
-#define MAX_JUMP_SIZE 14
+    #define MAX_JUMP_SIZE 14
+    #define MAX_HEAD_SIZE 28
 #endif
 
 typedef struct {
