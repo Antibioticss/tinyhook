@@ -78,7 +78,7 @@ static inline void save_header(void **src, void **dst, int min_len) {
         insn = *(uint32_t *)*src;
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
-            // modify the immediate (len 4 -> 4)
+            // modify the immediate (len: 4 -> 4)
             int64_t len = (insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc);
             len += ((int64_t)*src >> 12) - ((int64_t)*dst >> 12);
             insn &= 0x9f00001f; // clean the immediate

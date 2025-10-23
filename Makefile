@@ -1,7 +1,7 @@
 ARCH   ?= $(shell uname -m)
 TARGET ?= macosx
 
-CFLAGS  := -arch $(ARCH) -O3 -Wall -Wshadow
+CFLAGS  := -arch $(ARCH) -Os -Wall -Wshadow
 LDFLAGS := -flto=full -lobjc
 ASFLAGS := -arch $(ARCH)
 

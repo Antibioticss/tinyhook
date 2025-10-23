@@ -49,33 +49,31 @@ if (($#archs2build == 0)) {
     }
 }
 
-if [[ $sysver == "" ]] {
-    if [[ $target == macosx ]] {
-        sysver=10.15
-    } elif [[ $target == iphoneos ]] {
-        sysver=12.0
-    } else {
-        echo "unknown target: $target!"
-        exit 1
-    }
-}
+local build_arg=(TARGET=$target)
 
-local build_arg=(TARGET=$target MIN_OSVER=$sysver)
+if [[ $sysver != "" ]] {
+    build_arg+=(MIN_OSVER=$sysver)
+}
 
 if (($compact == 1)) {
     build_arg+=(COMPACT=1)
 }
 
 for i ($archs2build) {
-    mkdir -p build/$i
-    make clean ARCH=$i && make all ARCH=$i $build_arg
-    mv libtinyhook.a libtinyhook.dylib build/$i
+    (set -x # print command before executing
+        mkdir -p build/$i
+        make clean ARCH=$i && make all ARCH=$i $build_arg
+        cp libtinyhook.a libtinyhook.dylib build/$i
+    )
 }
 
 if (($#archs2build > 1)) {
-    rm -rf build/universal
-    mkdir -p build/universal
-    lipo -create -o build/universal/libtinyhook.a build/*/libtinyhook.a
-    lipo -create -o build/universal/libtinyhook.dylib build/*/libtinyhook.dylib
-    cp build/universal/libtinyhook.a build/universal/libtinyhook.dylib .
+    (set -x
+        cd build
+        mkdir -p universal
+        rm -f universal/libtinyhook.a universal/libtinyhook.dylib
+        lipo -create -o universal/libtinyhook.a ${archs2build/%//libtinyhook.a}
+        lipo -create -o universal/libtinyhook.dylib ${archs2build/%//libtinyhook.dylib}
+        cp universal/libtinyhook.a universal/libtinyhook.dylib ..
+    )
 }

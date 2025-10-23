@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: build macos libraries
-        run: rm -rf build && ./build.sh -t macosx
+        run: ./build.sh -t macosx -v 10.15
 
       - name: upload build artifact
         uses: actions/upload-artifact@v4
@@ -27,7 +27,7 @@ jobs:
           compression-level: 9
 
       - name: build ios libraries
-        run: rm -rf build && ./build.sh -t iphoneos
+        run: ./build.sh -t iphoneos -v 12.0
 
       - name: upload build artifact
         uses: actions/upload-artifact@v4
