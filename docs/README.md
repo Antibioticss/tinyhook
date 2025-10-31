@@ -11,9 +11,9 @@
 
 ## Building
 
-Build tinyhook yourself or download pre-built binaries from Releases
+Build tinyhook yourself or download pre-built binaries from [Releases](https://github.com/Antibioticss/tinyhook/releases)
 
-Nightly builds are available from Actions
+Nightly builds are available from [Actions](https://github.com/Antibioticss/tinyhook/actions)
 
 ### Build with `make`
 

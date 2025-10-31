@@ -11,9 +11,9 @@
 
 ## Building
 
-Build tinyhook yourself or download pre-built binaries from Releases
+Build tinyhook yourself or download pre-built binaries from [Releases](https://github.com/Antibioticss/tinyhook/releases)
 
-Nightly builds are available from Actions
+Nightly builds are available from [Actions](https://github.com/Antibioticss/tinyhook/actions)
 
 ### Build with `make`
 
@@ -63,10 +63,7 @@ Output binaries will be in `build/universal`
 
 ## Documentation
 
- - [Hooking](Hooking.md)
- - [Symbols](Symbols.md)
- - [Memory](Memory.md)
- - [Objective-C](Objective-C.md)
+Served on GitHub Pages: https://antibioticss.github.io/tinyhook/
 
 ## Example
 

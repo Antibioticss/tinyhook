@@ -48,7 +48,7 @@ int read_mem(void *destination, const void *source, size_t len);
 
 int write_mem(void *destination, const void *source, size_t len);
 
-/* solve symbol */
+/* symbol resolve */
 void *symtbl_solve(uint32_t image_index, const char *symbol_name);
 
 void *symexp_solve(uint32_t image_index, const char *symbol_name);
