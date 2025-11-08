@@ -98,9 +98,8 @@ static inline void save_header(void **src, void **dst, int min_len) {
 
             // mov r64 $rip+(immediate)
             *(uint16_t *)*dst = X86_64_MOV_RI64;
+            *(uint8_t *)(*dst + 1) += insn.modrm_reg;
             *dst += sizeof(uint16_t);
-            *(uint8_t *)*dst = insn.modrm_reg;
-            *dst += sizeof(uint8_t);
             *(uint64_t *)*dst = insn.disp32 + (uint64_t)*src + insn.len;
             *dst += sizeof(uint64_t);
             // mov r64 [r64]

@@ -1,3 +1,4 @@
+#include <dlfcn.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -61,5 +62,20 @@ __attribute__((constructor(0))) int load() {
     // or use interpose to hook it!
     fprintf(stderr, "=== Now interposing printf\n");
     tiny_interpose(0, "_printf", printf_interpose);
+    return 0;
+}
+
+static void *(*orig_dlopen)(const char *filename, int flag);
+void *my_dlopen(const char *filename, int flag) {
+    printf("\033[1;31m[dlopen]\033[1;33m filename:\033[0m %s\033[1;33m flag:\033[0m 0x%x\n", filename, flag);
+    void *ret = orig_dlopen(filename, flag);
+    printf("\033[1;32m[>]\033[0m handler: %p\n", ret);
+    return ret;
+}
+
+__attribute__((constructor(1))) int load2() {
+    tiny_hook(dlopen, my_dlopen, (void **)&orig_dlopen);
+    void *handle = dlopen("./libexample.dylib", RTLD_LAZY);
+    dlclose(handle);
     return 0;
 }
