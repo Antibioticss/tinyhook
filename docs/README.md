@@ -63,7 +63,10 @@ Output binaries will be in `build/universal`
 
 ## Documentation
 
-Served on GitHub Pages: https://antibioticss.github.io/tinyhook/
+ - [Hooking](Hooking.md)
+ - [Symbols](Symbols.md)
+ - [Memory](Memory.md)
+ - [Objective-C](Objective-C.md)
 
 ## Example
 
