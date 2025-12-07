@@ -73,21 +73,7 @@ static mach_vm_address_t vmbase;
 static inline void save_header(void **src, void **dst, int min_len) {
     mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_DEFAULT);
 #ifdef __aarch64__
-    uint32_t insn;
-    for (int i = 0; i < min_len; i += 4) {
-        insn = *(uint32_t *)*src;
-        if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
-            // adrp
-            // modify the immediate (len: 4 -> 4)
-            int64_t len = (insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc);
-            len += ((int64_t)*src >> 12) - ((int64_t)*dst >> 12);
-            insn &= 0x9f00001f; // clean the immediate
-            insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
-        }
-        *(uint32_t *)*dst = insn;
-        *dst += 4;
-        *src += 4;
-    }
+    copy_instruction(src, dst, min_len);
 #elif __x86_64__
     struct fde64s insn;
     for (int i = 0; i < min_len; i += insn.len) {

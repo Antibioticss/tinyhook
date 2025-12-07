@@ -52,4 +52,6 @@
 
 bool need_far_jump(const void *src, const void *dst);
 
+size_t copy_instruction(void **src_ptr, void **dst_ptr, int len);
+
 #endif
