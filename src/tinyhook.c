@@ -127,6 +127,22 @@ static inline void save_header(void **src, void **dst, int min_len) {
             *(uint8_t *)*dst = insn.modrm_reg << 3 | insn.modrm_reg;
             *dst += sizeof(uint8_t);
         }
+        else if ((insn.opcode & 0xf0) == 0x70) {
+            // Jcc (short)
+            void *jmp_dst = *src + insn.len + insn.imm8;
+            int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
+            *(uint8_t *)*dst = insn.opcode ^ 1; // invert the condition
+            *(int8_t *)(*dst + 1) = jmp_len;
+            *dst += 2 + jmp_len;
+        }
+        else if (insn.opcode_len == 2 && insn.opcode == 0x0f && (insn.opcode2 & 0xf0) == 0x80) {
+            // Jcc (near)
+            void *jmp_dst = *src + insn.len + insn.imm32;
+            int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
+            *(uint8_t *)*dst = (0x70 | (insn.opcode2 & 0xf)) ^ 1; // invert the condition
+            *(int8_t *)(*dst + 1) = jmp_len;
+            *dst += 2 + jmp_len;
+        }
         else {
             memcpy(*dst, *src, insn.len);
             *dst += insn.len;

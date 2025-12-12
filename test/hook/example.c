@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/sysctl.h>
 
 #include "../../include/tinyhook.h"
 
@@ -73,9 +74,31 @@ void *my_dlopen(const char *filename, int flag) {
     return ret;
 }
 
+int (*orig_sysctl)(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+int my_sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
+    int ret = orig_sysctl(name, namelen, oldp, oldlenp, newp, newlen);
+    fprintf(stderr, "=== sysctl hooked! Return value: %d\n", ret);
+    return ret;
+}
+
+void get_cpu_cores(void) {
+    int mib[2];
+    int cpu_count;
+    size_t len = sizeof(cpu_count);
+
+    mib[0] = CTL_HW;
+    mib[1] = HW_NCPU;
+    sysctl(mib, 2, &cpu_count, &len, NULL, 0);
+
+    printf("CPU cores: %d\n", cpu_count);
+    return;
+}
+
 __attribute__((constructor(1))) int load2() {
-    tiny_hook(dlopen, my_dlopen, (void **)&orig_dlopen);
+    tiny_hook(dlopen, my_dlopen, (void **)&orig_dlopen); // test adrp for arm64
     void *handle = dlopen("./libexample.dylib", RTLD_LAZY);
     dlclose(handle);
+    tiny_hook(sysctl, my_sysctl, (void **)&orig_sysctl); // test jne for intel
+    get_cpu_cores();
     return 0;
 }
