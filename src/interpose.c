@@ -6,12 +6,15 @@
 #include <mach-o/nlist.h>
 #include <stdint.h>
 #include <string.h>
+#ifndef COMPACT
+    #include <mach/mach_error.h> // mach_error_string()
+#endif
 
 int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement) {
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
-    struct section_64 *sym_sects[2] = {NULL, NULL};
+    struct section_64 *sym_sects[2] = {NULL, NULL}; // possible to have both!
     struct symtab_command *symtab_cmd = NULL;
     struct dysymtab_command *dysymtab_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
@@ -24,7 +27,6 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                 for (int j = 0; j < segment->nsects; j++) {
                     if ((data_const_sect[j].flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
                         sym_sects[0] = data_const_sect + j; // __nl_symbol_ptr
-                        break;
                     }
                 }
             }
@@ -34,7 +36,6 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                 for (int j = 0; j < segment->nsects; j++) {
                     if ((data_sect[j].flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
                         sym_sects[1] = data_sect + j; // __la_symbol_ptr
-                        break;
                     }
                 }
             }
@@ -78,15 +79,17 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                 if (i == 0) { // __nl_symbol_ptr in __DATA_CONST
                     err = mach_vm_protect(mach_task_self(), (mach_vm_address_t)sym_ptrs, sym_sec->size, FALSE,
                                           VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
-                    if (err != 0) goto exit;
+                    if (err != 0) {
+                        LOG_ERROR("mach_vm_protect: %s", mach_error_string(err));
+                        break;
+                    }
                 }
                 sym_ptrs[j] = replacement;
-                goto exit;
+                break;
             }
         }
     }
 
-exit:
     if (!found) {
         err = -1;
         LOG_ERROR("tiny_interpose: no matching indirect symbol found!");

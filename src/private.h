@@ -41,6 +41,8 @@
     #define AARCH64_BLR  0xd63f0220 // blr      x17
     #define AARCH64_ADD  0x91000231 // add      x17, x17, 0
     #define AARCH64_SUB  0xd1000231 // sub      x17, x17, 0
+    #define AARCH64_MOVZ 0xd2800000 // movz     xd, 0
+    #define AARCH64_MOVK 0xf2800000 // movk     xd, 0
 #elif __x86_64__
     #define X86_64_CALL     0xe8       // call
     #define X86_64_JMP      0xe9       // jmp

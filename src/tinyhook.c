@@ -79,13 +79,32 @@ static inline void save_header(void **src, void **dst, int min_len) {
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
             // modify the immediate (len: 4 -> 4)
-            int64_t len = (insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc);
-            len += ((int64_t)*src >> 12) - ((int64_t)*dst >> 12);
-            insn &= 0x9f00001f; // clean the immediate
-            insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
+            int64_t addr = ((int64_t)*src >> 12) + ((insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc));
+            int64_t len = addr - ((int64_t)*dst >> 12);
+            if ((len << 12) < 4 * GB) {
+                insn &= 0x9f00001f; // clean the immediate
+                insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
+                *(uint32_t *)*dst = insn;
+                *dst += 4;
+            }
+            else {
+                int64_t imm64 = addr << 12;
+                uint16_t rd = insn & 0b11111;
+                bool cleaned = false;
+                for (int j = 0; imm64; imm64 >>= 16, j++) {
+                    uint64_t cur_imm = imm64 & 0xffff;
+                    if (cur_imm) {
+                        *(uint32_t *)*dst = (j << 21) | (cur_imm << 5) | rd | (cleaned ? AARCH64_MOVK : AARCH64_MOVZ);
+                        *dst += 4;
+                        cleaned = true;
+                    }
+                }
+            }
         }
-        *(uint32_t *)*dst = insn;
-        *dst += 4;
+        else {
+            *(uint32_t *)*dst = insn;
+            *dst += 4;
+        }
         *src += 4;
     }
 #elif __x86_64__
