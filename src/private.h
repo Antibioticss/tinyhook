@@ -52,6 +52,14 @@
     #define X86_64_MOV_RM64 0x8b48     // mov      r64, [r64]
 #endif
 
+#ifdef __aarch64__
+    #define MAX_JUMP_SIZE 12
+    #define MAX_HEAD_SIZE 48 // size of saved function header
+#elif __x86_64__
+    #define MAX_JUMP_SIZE 14
+    #define MAX_HEAD_SIZE 35
+#endif
+
 bool need_far_jump(const void *src, const void *dst);
 
 #endif

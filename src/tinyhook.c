@@ -78,16 +78,17 @@ static inline void save_header(void **src, void **dst, int min_len) {
         insn = *(uint32_t *)*src;
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
-            // modify the immediate (len: 4 -> 4)
             int64_t addr = ((int64_t)*src >> 12) + ((insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc));
             int64_t len = addr - ((int64_t)*dst >> 12);
             if ((len << 12) < 4 * GB) {
+                // modify the immediate (len: 4 -> 4)
                 insn &= 0x9f00001f; // clean the immediate
                 insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
                 *(uint32_t *)*dst = insn;
                 *dst += 4;
             }
             else {
+                // use movz + movk to get the address (len: 4 -> 16)
                 int64_t imm64 = addr << 12;
                 uint16_t rd = insn & 0b11111;
                 bool cleaned = false;
@@ -129,6 +130,7 @@ static inline void save_header(void **src, void **dst, int min_len) {
         }
         else if ((insn.opcode & 0xf0) == 0x70) {
             // Jcc (short)
+            // revert the condition and insert a jump (len: 2 -> 2+14)
             void *jmp_dst = *src + insn.len + insn.imm8;
             int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
             *(uint8_t *)*dst = insn.opcode ^ 1; // invert the condition
@@ -136,7 +138,7 @@ static inline void save_header(void **src, void **dst, int min_len) {
             *dst += 2 + jmp_len;
         }
         else if (insn.opcode_len == 2 && insn.opcode == 0x0f && (insn.opcode2 & 0xf0) == 0x80) {
-            // Jcc (near)
+            // Jcc (near) (len: 6 -> 2+14)
             void *jmp_dst = *src + insn.len + insn.imm32;
             int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
             *(uint8_t *)*dst = (0x70 | (insn.opcode2 & 0xf)) ^ 1; // invert the condition

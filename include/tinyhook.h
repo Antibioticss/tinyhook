@@ -8,18 +8,10 @@
 extern "C" {
 #endif
 
-#ifdef __aarch64__
-    #define MAX_JUMP_SIZE 12
-    #define MAX_HEAD_SIZE 12
-#elif __x86_64__
-    #define MAX_JUMP_SIZE 14
-    #define MAX_HEAD_SIZE 28
-#endif
-
 typedef struct {
     void *address;
     int jump_size;
-    uint8_t head_bak[MAX_JUMP_SIZE];
+    uint8_t head_bak[16];
 } th_bak_t;
 
 /* inline hook */
