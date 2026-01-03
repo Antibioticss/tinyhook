@@ -11,6 +11,10 @@
     #include "fde64/fde64.h"
 #endif
 
+int32_t sign_extend(uint32_t x, int N) {
+    return (int32_t)(x << (32 - N)) >> (32 - N);
+}
+
 bool need_far_jump(const void *src, const void *dst) {
     long long distance = dst > src ? dst - src : src - dst;
 #ifdef __aarch64__
@@ -78,7 +82,8 @@ static inline void save_header(void **src, void **dst, int min_len) {
         insn = *(uint32_t *)*src;
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
-            int64_t addr = ((int64_t)*src >> 12) + ((insn >> 29 & 0x3) | ((insn >> 3) & 0x1ffffc));
+            int32_t imm21 = sign_extend((insn >> 29 & 0x3) | (insn >> 3 & 0x1ffffc), 21);
+            int64_t addr = ((int64_t)*src >> 12) + imm21;
             int64_t len = addr - ((int64_t)*dst >> 12);
             if ((len << 12) < 4 * GB) {
                 // modify the immediate (len: 4 -> 4)
@@ -105,7 +110,7 @@ static inline void save_header(void **src, void **dst, int min_len) {
         else if (((insn ^ 0x14000000) & 0xfc000000) == 0 || ((insn ^ 0x94000000) & 0xfc000000) == 0) {
             // b or bl
             bool link = insn >> 31;
-            int32_t imm26 = (int32_t)(insn << 6) >> 6; // sign extend
+            int32_t imm26 = sign_extend(insn, 26);
             void *addr = *src + (imm26 << 2);
             *dst += calc_jump(*dst, *dst, addr, link);
         }
@@ -136,7 +141,7 @@ static inline void save_header(void **src, void **dst, int min_len) {
             *dst += sizeof(uint8_t);
         }
         else if ((insn.opcode & 0xf0) == 0x70) {
-            // Jcc (short)
+            // jcc (short)
             // revert the condition and insert a jump (len: 2 -> 2+14)
             void *jmp_dst = *src + insn.len + insn.imm8;
             int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
@@ -145,12 +150,18 @@ static inline void save_header(void **src, void **dst, int min_len) {
             *dst += 2 + jmp_len;
         }
         else if (insn.opcode_len == 2 && insn.opcode == 0x0f && (insn.opcode2 & 0xf0) == 0x80) {
-            // Jcc (near) (len: 6 -> 2+14)
+            // jcc (near) (len: 6 -> 2+14)
             void *jmp_dst = *src + insn.len + insn.imm32;
             int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
             *(uint8_t *)*dst = (0x70 | (insn.opcode2 & 0xf)) ^ 1; // invert the condition
             *(int8_t *)(*dst + 1) = jmp_len;
             *dst += 2 + jmp_len;
+        }
+        else if (insn.opcode == 0xe8 || insn.opcode == 0xe9) {
+            // call or jmp (rel32) (len: 5 -> 5/14)
+            bool link = (insn.opcode == 0xe8);
+            void *jmp_dst = *src + insn.len + insn.imm32;
+            *dst += calc_jump(*dst, *dst, jmp_dst, link);
         }
         else {
             memcpy(*dst, *src, insn.len);

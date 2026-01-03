@@ -50,7 +50,7 @@ __attribute__((constructor(0))) int load() {
     // hook a function by symbol (in the SYMTAB)
     void *func_add = symtbl_solve(0, "_add");
     fprintf(stderr, "=== add() address: %p\n", func_add);
-    tiny_hook(func_add, fake_add, &orig_add);
+    tiny_hook(func_add, fake_add, (void **)&orig_add);
 
     // hook system function
     fprintf(stderr, "=== Hooking printf\n");

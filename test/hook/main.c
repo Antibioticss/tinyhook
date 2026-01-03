@@ -8,7 +8,7 @@ __attribute__((naked)) int add(int a, int b) {
 #ifdef __arm64__
     asm volatile("b _add2");
 #elif __x86_64__
-    asm volatile("call _add2");
+    asm volatile("jmp _add2");
 #endif
 }
 
