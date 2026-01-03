@@ -102,6 +102,13 @@ static inline void save_header(void **src, void **dst, int min_len) {
                 }
             }
         }
+        else if (((insn ^ 0x14000000) & 0xfc000000) == 0 || ((insn ^ 0x94000000) & 0xfc000000) == 0) {
+            // b or bl
+            bool link = insn >> 31;
+            int32_t imm26 = (int32_t)(insn << 6) >> 6; // sign extend
+            void *addr = *src + (imm26 << 2);
+            *dst += calc_jump(*dst, *dst, addr, link);
+        }
         else {
             *(uint32_t *)*dst = insn;
             *dst += 4;

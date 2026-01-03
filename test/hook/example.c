@@ -27,8 +27,10 @@ int printf_interpose(const char *format, ...) {
     return res;
 }
 
+int (*orig_add)(int a, int b);
 int fake_add(int a, int b) {
-    fprintf(stderr, "=== calling fake_add with: %d, %d\n", a, b);
+    fprintf(stderr, "=== calling add with: %d, %d\n", a, b);
+    fprintf(stderr, "=== the return value is: %d\n", orig_add(a, b));
     return -1;
 }
 
@@ -48,7 +50,7 @@ __attribute__((constructor(0))) int load() {
     // hook a function by symbol (in the SYMTAB)
     void *func_add = symtbl_solve(0, "_add");
     fprintf(stderr, "=== add() address: %p\n", func_add);
-    tiny_hook(func_add, fake_add, NULL);
+    tiny_hook(func_add, fake_add, &orig_add);
 
     // hook system function
     fprintf(stderr, "=== Hooking printf\n");
