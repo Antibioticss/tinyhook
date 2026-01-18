@@ -64,7 +64,7 @@ __attribute__((constructor(0))) int load() {
 
     // or use interpose to hook it!
     fprintf(stderr, "=== Now interposing printf\n");
-    tiny_interpose(0, "_printf", printf_interpose);
+    tiny_interpose(0, "_printf", printf_interpose, NULL);
     return 0;
 }
 

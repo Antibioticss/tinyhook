@@ -30,7 +30,7 @@ TH_VIS int tiny_unhook_ex(const th_bak_t *bak);
 TH_VIS int tiny_insert(void *address, void *destination);
 
 /* interpose */
-TH_VIS int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement);
+TH_VIS int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement, void **origin);
 
 /* objective-c runtime */
 TH_VIS int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin);

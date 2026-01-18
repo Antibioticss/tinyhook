@@ -10,7 +10,7 @@
     #include <mach/mach_error.h> // mach_error_string()
 #endif
 
-int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement) {
+int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement, void **origin) {
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
@@ -84,6 +84,8 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                         break;
                     }
                 }
+                if (origin != NULL)
+                    *origin = sym_ptrs[j];
                 sym_ptrs[j] = replacement;
                 break;
             }
