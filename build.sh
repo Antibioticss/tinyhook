@@ -18,7 +18,7 @@ sysver=
 compact=0
 noexport=0
 
-while {getopts a:t:v:c arg} {
+while {getopts a:t:v:cn arg} {
     case $arg {
         (a)
         archs2build+=($OPTARG)
