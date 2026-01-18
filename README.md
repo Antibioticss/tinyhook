@@ -33,6 +33,7 @@ Available variables:
  - `MIN_OSVER` minimum os version requirement
  - `DEBUG` generate debug infomation
  - `COMPACT` no error log output (not recommended!)
+ - `NO_EXPORT` hide all symbols (don't use this for dynamic library)
 
 For example, building shared library for iOS 18.0+ `arm64e` binary with `DEBUG` enabled
 
@@ -50,6 +51,7 @@ arguments:
   -t <target>   specify target system, macosx(default) or iphoneos
   -v <version>  specify minimum system version
   -c            build compact version
+  -n            don't export symbols
 ```
 
 For example, the below commands are used to build binaries for releasing

@@ -4,6 +4,12 @@
 #include <objc/runtime.h>
 #include <stdint.h>
 
+#ifdef NO_EXPORT
+#define TH_API __attribute__((visibility("hidden")))
+#else
+#define TH_API __attribute__((visibility("default")))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,35 +21,35 @@ typedef struct {
 } th_bak_t;
 
 /* inline hook */
-int tiny_hook(void *function, void *destination, void **origin);
+TH_API int tiny_hook(void *function, void *destination, void **origin);
 
-int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin);
+TH_API int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin);
 
-int tiny_unhook_ex(const th_bak_t *bak);
+TH_API int tiny_unhook_ex(const th_bak_t *bak);
 
-int tiny_insert(void *address, void *destination);
+TH_API int tiny_insert(void *address, void *destination);
 
 /* interpose */
-int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement);
+TH_API int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement);
 
 /* objective-c runtime */
-int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin);
+TH_API int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin);
 
-int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *sel2);
+TH_API int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *sel2);
 
-void *ocrt_impl(char type, const char *cls, const char *sel);
+TH_API void *ocrt_impl(char type, const char *cls, const char *sel);
 
-Method ocrt_method(char type, const char *cls, const char *sel);
+TH_API Method ocrt_method(char type, const char *cls, const char *sel);
 
 /* memory access */
-int read_mem(void *destination, const void *source, size_t len);
+TH_API int read_mem(void *destination, const void *source, size_t len);
 
-int write_mem(void *destination, const void *source, size_t len);
+TH_API int write_mem(void *destination, const void *source, size_t len);
 
 /* symbol resolve */
-void *symtbl_solve(uint32_t image_index, const char *symbol_name);
+TH_API void *symtbl_solve(uint32_t image_index, const char *symbol_name);
 
-void *symexp_solve(uint32_t image_index, const char *symbol_name);
+TH_API void *symexp_solve(uint32_t image_index, const char *symbol_name);
 
 #ifdef __cplusplus
 }

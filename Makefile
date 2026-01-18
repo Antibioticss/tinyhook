@@ -1,7 +1,7 @@
 ARCH   ?= $(shell uname -m)
 TARGET ?= macosx
 
-CFLAGS  := -arch $(ARCH) -Os -Wall -Wshadow
+CFLAGS  := -arch $(ARCH) -fvisibility=hidden -Os -Wall -Wshadow
 LDFLAGS := -flto=full -lobjc
 ASFLAGS := -arch $(ARCH)
 
@@ -25,6 +25,7 @@ endif
 
 CFLAGS += $(if $(DEBUG),-g -fsanitize=address)
 CFLAGS += $(if $(COMPACT),-DCOMPACT)
+CFLAGS += $(if $(NO_EXPORT),-DNO_EXPORT)
 ifeq ($(ARCH), x86_64)
 	OBJ += src/fde64/fde64.o
 endif
@@ -37,6 +38,7 @@ all: static shared
 
 $(LIB_STATIC): $(OBJ)
 	ar -rcs $@ $^
+	ranlib $@
 
 $(LIB_SHARED): $(OBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^

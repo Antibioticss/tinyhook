@@ -16,6 +16,7 @@ archs2build=()
 target=macosx
 sysver=
 compact=0
+noexport=0
 
 while {getopts a:t:v:c arg} {
     case $arg {
@@ -30,6 +31,9 @@ while {getopts a:t:v:c arg} {
         ;;
         (c)
         compact=1
+        ;;
+        (n)
+        noexport=1
         ;;
         (?)
         echo error
@@ -57,6 +61,10 @@ if [[ $sysver != "" ]] {
 
 if (($compact == 1)) {
     build_arg+=(COMPACT=1)
+}
+
+if (($noexport == 1)) {
+    build_arg+=(NO_EXPORT=1)
 }
 
 for i ($archs2build) {
