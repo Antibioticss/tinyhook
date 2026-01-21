@@ -1,5 +1,5 @@
-#include "../include/tinyhook.h"
 #include "private.h"
+#include "tinyhook.h"
 
 static int get_jump_size(const void *src, const void *dst) {
     bool is_far = need_far_jump(src, dst);

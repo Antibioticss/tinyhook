@@ -2,7 +2,7 @@
 
 tinyhook implemented simple inline hooking and symbol interposing functions, supporting both `arm64` and `x86_64` architecture
 
-Note that inline hooking/inserting only works on jailed iOS devices
+Note that inline hooking/inserting only works on **jailed iOS devices**
 
 ## tiny_hook
 
@@ -13,9 +13,10 @@ int tiny_hook(void *function, void *destination, void **origin);
 Core **inline hook** function, replace a function with a new implementation
 
 #### Parameters
- - `function` the address of the function to be hooked
- - `destination` your new implementation of the function
- - `origin` address of the original function pointer
+
+- `function` the address of the function to be hooked
+- `destination` your new implementation of the function
+- `origin` pointer to a pointer which will store original function
 
 #### Return Value
 
@@ -36,7 +37,8 @@ int tiny_unhook_ex(th_bak_t *bak);
 ```
 
 #### Parameters
- - `bak` pointer to `th_bak_t` struct, which includes a backup of original function header
+
+- `bak` pointer to `th_bak_t` struct, which includes a backup of original function header
 
 #### Return Value
 
@@ -46,20 +48,22 @@ Return `0` on success
 
 `tiny_hook_ex` and `tiny_unhook_ex` should be used in pairs
 
-*You should not modify `th_bak_t` struct by yourself!!*
+_You should not modify `th_bak_t` struct by yourself!!_
 
 ## tiny_interpose
 
 **Interpose a symbol** in a given image
 
 ```c
-int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement);
+int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement, void **origin);
 ```
 
 #### Parameters
- - `image_index` the index to the image which includes the symbol
- - `symbol_name` raw symbol name (without demangling)
- - `replacement` your new implementation of the function
+
+- `image_index` the index to the image which includes the symbol
+- `symbol_name` raw symbol name (without demangling)
+- `replacement` your new implementation of the function
+- `origin` pointer to a pointer which will store original function
 
 #### Return Value
 
@@ -82,8 +86,9 @@ int tiny_insert(void *address, void *destination);
 ```
 
 #### Parameters
- - `address` where to insert the function call
- - `destination` the destination of the call
+
+- `address` where to insert the function call
+- `destination` the destination of the call
 
 #### Return Value
 
@@ -91,6 +96,6 @@ Return `0` on success
 
 #### Discussion
 
-This will insert a `bl`/`call` instruction at `address`  (if it's far it would be `adrp+blr`/`call [rip]`)
+This will insert a `bl`/`call` instruction at `address` (if it's far it would be `adrp+blr`/`call [rip]`)
 
 Usually used to replace an existing function call

@@ -9,6 +9,7 @@ ColumnLimit: 120
 AlignConsecutiveMacros: AcrossEmptyLines
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: true
+BreakAfterAttributes: Always
 BreakBeforeBraces: Custom
 BraceWrapping:
   BeforeElse: true

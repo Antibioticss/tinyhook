@@ -1,5 +1,8 @@
-#include "../include/tinyhook.h"
+#include "tinyhook.h"
 #include "private.h"
+#ifdef __x86_64__
+    #include "fde64/fde64.h"
+#endif
 
 #include <stdint.h>
 #include <string.h> // memcpy()
@@ -7,22 +10,11 @@
     #include <mach/mach_error.h> // mach_error_string()
 #endif
 
-#ifdef __x86_64__
-    #include "fde64/fde64.h"
-#endif
-
-int32_t sign_extend(uint32_t x, int N) {
+#ifdef __aarch64__
+static inline int32_t sign_extend(uint32_t x, int N) {
     return (int32_t)(x << (32 - N)) >> (32 - N);
 }
-
-bool need_far_jump(const void *src, const void *dst) {
-    long long distance = dst > src ? dst - src : src - dst;
-#ifdef __aarch64__
-    return distance >= 128 * MB;
-#elif __x86_64__
-    return distance >= 2 * GB;
 #endif
-}
 
 static int calc_near_jump(uint8_t *output, void *src, void *dst, bool link) {
     int jump_size;
@@ -74,23 +66,23 @@ static int calc_jump(uint8_t *output, void *src, void *dst, bool link) {
 static void *trampo;
 static mach_vm_address_t vmbase;
 
-static inline void save_header(void **src, void **dst, int min_len) {
+static inline void save_header(void **src_p, void **dst_p, int min_len) {
     mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_DEFAULT);
 #ifdef __aarch64__
     uint32_t insn;
-    for (int i = 0; i < min_len; i += 4) {
-        insn = *(uint32_t *)*src;
+    uint32_t *src = *src_p, *dst = *dst_p;
+    for (uint32_t *end = src + min_len / 4; src < end; src++) {
+        insn = *src;
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
             int32_t imm21 = sign_extend((insn >> 29 & 0x3) | (insn >> 3 & 0x1ffffc), 21);
-            int64_t addr = ((int64_t)*src >> 12) + imm21;
-            int64_t len = addr - ((int64_t)*dst >> 12);
+            int64_t addr = ((int64_t)src >> 12) + imm21;
+            int64_t len = addr - ((int64_t)dst >> 12);
             if ((len << 12) < 4 * GB) {
                 // modify the immediate (len: 4 -> 4)
                 insn &= 0x9f00001f; // clean the immediate
                 insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
-                *(uint32_t *)*dst = insn;
-                *dst += 4;
+                *dst++ = insn;
             }
             else {
                 // use movz + movk to get the address (len: 4 -> 16)
@@ -100,8 +92,7 @@ static inline void save_header(void **src, void **dst, int min_len) {
                 for (int j = 0; imm64; imm64 >>= 16, j++) {
                     uint64_t cur_imm = imm64 & 0xffff;
                     if (cur_imm) {
-                        *(uint32_t *)*dst = (j << 21) | (cur_imm << 5) | rd | (cleaned ? AARCH64_MOVK : AARCH64_MOVZ);
-                        *dst += 4;
+                        *dst++ = (j << 21) | (cur_imm << 5) | rd | (cleaned ? AARCH64_MOVK : AARCH64_MOVZ);
                         cleaned = true;
                     }
                 }
@@ -111,65 +102,64 @@ static inline void save_header(void **src, void **dst, int min_len) {
             // b or bl
             bool link = insn >> 31;
             int32_t imm26 = sign_extend(insn, 26);
-            void *addr = *src + (imm26 << 2);
-            *dst += calc_jump(*dst, *dst, addr, link);
+            void *addr = (void *)src + (imm26 << 2);
+            dst += calc_jump((uint8_t *)dst, dst, addr, link) / 4;
         }
         else {
-            *(uint32_t *)*dst = insn;
-            *dst += 4;
+            *dst++ = insn;
         }
-        *src += 4;
     }
 #elif __x86_64__
     struct fde64s insn;
-    for (int i = 0; i < min_len; i += insn.len) {
-        decode(*src, &insn);
+    void *src = *src_p, *dst = *dst_p;
+    for (void *end = src + min_len; src < end; src += insn.len) {
+        decode(src, &insn);
         if (insn.opcode == 0x8b && insn.modrm_rm == RM_DISP32) {
             // mov r64, [rip+]
             // split it into 2 instructions (len: 7 -> 11+3)
 
             // mov r64 $rip+(immediate)
-            *(uint16_t *)*dst = X86_64_MOV_RI64;
-            *(uint8_t *)(*dst + 1) += insn.modrm_reg;
-            *dst += sizeof(uint16_t);
-            *(uint64_t *)*dst = insn.disp32 + (uint64_t)*src + insn.len;
-            *dst += sizeof(uint64_t);
+            *(uint16_t *)dst = X86_64_MOV_RI64;
+            *(uint8_t *)(dst + 1) += insn.modrm_reg;
+            dst += sizeof(uint16_t);
+            *(uint64_t *)dst = insn.disp32 + (uint64_t)src + insn.len;
+            dst += sizeof(uint64_t);
             // mov r64 [r64]
-            *(uint16_t *)*dst = X86_64_MOV_RM64;
-            *dst += sizeof(uint16_t);
-            *(uint8_t *)*dst = insn.modrm_reg << 3 | insn.modrm_reg;
-            *dst += sizeof(uint8_t);
+            *(uint16_t *)dst = X86_64_MOV_RM64;
+            dst += sizeof(uint16_t);
+            *(uint8_t *)dst = insn.modrm_reg << 3 | insn.modrm_reg;
+            dst += sizeof(uint8_t);
         }
         else if ((insn.opcode & 0xf0) == 0x70) {
             // jcc (short)
             // revert the condition and insert a jump (len: 2 -> 2+14)
-            void *jmp_dst = *src + insn.len + insn.imm8;
-            int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
-            *(uint8_t *)*dst = insn.opcode ^ 1; // invert the condition
-            *(int8_t *)(*dst + 1) = jmp_len;
-            *dst += 2 + jmp_len;
+            void *jmp_dst = src + insn.len + insn.imm8;
+            int jmp_len = calc_jump(dst + 2, dst + 2, jmp_dst, false);
+            *(uint8_t *)dst = insn.opcode ^ 1; // invert the condition
+            *(int8_t *)(dst + 1) = jmp_len;
+            dst += 2 + jmp_len;
         }
         else if (insn.opcode_len == 2 && insn.opcode == 0x0f && (insn.opcode2 & 0xf0) == 0x80) {
             // jcc (near) (len: 6 -> 2+14)
-            void *jmp_dst = *src + insn.len + insn.imm32;
-            int jmp_len = calc_jump(*dst + 2, *dst + 2, jmp_dst, false);
-            *(uint8_t *)*dst = (0x70 | (insn.opcode2 & 0xf)) ^ 1; // invert the condition
-            *(int8_t *)(*dst + 1) = jmp_len;
-            *dst += 2 + jmp_len;
+            void *jmp_dst = src + insn.len + insn.imm32;
+            int jmp_len = calc_jump(dst + 2, dst + 2, jmp_dst, false);
+            *(uint8_t *)dst = (0x70 | (insn.opcode2 & 0xf)) ^ 1; // invert the condition
+            *(int8_t *)(dst + 1) = jmp_len;
+            dst += 2 + jmp_len;
         }
         else if (insn.opcode == 0xe8 || insn.opcode == 0xe9) {
             // call or jmp (rel32) (len: 5 -> 5/14)
             bool link = (insn.opcode == 0xe8);
-            void *jmp_dst = *src + insn.len + insn.imm32;
-            *dst += calc_jump(*dst, *dst, jmp_dst, link);
+            void *jmp_dst = src + insn.len + insn.imm32;
+            dst += calc_jump(dst, dst, jmp_dst, link);
         }
         else {
-            memcpy(*dst, *src, insn.len);
-            *dst += insn.len;
+            memcpy(dst, src, insn.len);
+            dst += insn.len;
         }
-        *src += insn.len;
     }
 #endif
+    *src_p = src, *dst_p = dst;
     mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
     return;
 }
@@ -180,28 +170,27 @@ int tiny_hook(void *src, void *dst, void **orig) {
     uint8_t jump_insns[MAX_JUMP_SIZE];
     if (orig == NULL) {
         jump_size = calc_jump(jump_insns, src, dst, false);
-        kr = write_mem(src, jump_insns, jump_size);
+        return write_mem(src, jump_insns, jump_size);
     }
-    else {
-        // check if the space is enough
-        if (!trampo || ((uint64_t)trampo + MAX_JUMP_SIZE + MAX_HEAD_SIZE >= vmbase + PAGE_SIZE)) {
-            // alloc a vm to store headers and jumps
-            kr = mach_vm_allocate(mach_task_self(), &vmbase, PAGE_SIZE, VM_FLAGS_ANYWHERE);
-            if (kr != 0) {
-                LOG_ERROR("mach_vm_allocate: %s", mach_error_string(kr));
-                return kr;
-            }
-            trampo = (void *)vmbase;
+    // check if the space is enough
+    if (!trampo || ((uint64_t)trampo + MAX_JUMP_SIZE + MAX_HEAD_SIZE >= vmbase + PAGE_SIZE)) {
+        // alloc a vm to store headers and jumps
+        kr = mach_vm_allocate(mach_task_self(), &vmbase, PAGE_SIZE, VM_FLAGS_ANYWHERE);
+        if (kr != 0) {
+            LOG_ERROR("mach_vm_allocate: %s", mach_error_string(kr));
+            return kr;
         }
-        void *bak = src;
-        *orig = trampo;
-        jump_size = calc_jump(jump_insns, src, dst, false);
-        save_header(&bak, &trampo, jump_size);
-        kr |= write_mem(src, jump_insns, jump_size);
-        jump_size += calc_jump(jump_insns, trampo, bak, false);
-        kr |= write_mem(trampo, jump_insns, jump_size);
-        trampo += jump_size;
+        trampo = (void *)vmbase;
     }
+    void *bak = src;
+    *orig = trampo;
+    jump_size = calc_jump(jump_insns, src, dst, false);
+    save_header(&bak, &trampo, jump_size);
+    kr = write_mem(src, jump_insns, jump_size);
+    if (kr != 0) return kr;
+    jump_size += calc_jump(jump_insns, trampo, bak, false);
+    kr = write_mem(trampo, jump_insns, jump_size);
+    trampo += jump_size;
     return kr;
 }
 

@@ -1,5 +1,5 @@
-#include "../include/tinyhook.h"
 #include "private.h"
+#include "tinyhook.h"
 
 #include <objc/runtime.h> // objc_*, ...
 
