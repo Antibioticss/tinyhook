@@ -56,7 +56,7 @@ static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
     return jump_size;
 }
 
-static int calc_jump(uint8_t *output, void *src, void *dst, bool link) {
+static int calc_jump(void *output, void *src, void *dst, bool link) {
     if (need_far_jump(src, dst))
         return calc_far_jump(output, src, dst, link);
     else
@@ -103,7 +103,16 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
             bool link = insn >> 31;
             int32_t imm26 = sign_extend(insn, 26);
             void *addr = (void *)src + (imm26 << 2);
-            dst += calc_jump((uint8_t *)dst, dst, addr, link) / 4;
+            dst += calc_jump(dst, dst, addr, link) / 4;
+        }
+        else if (((insn ^ 0x54000000) & 0xff000000) == 0) {
+            // b.cond or bc.cond
+            int32_t imm19 = sign_extend(insn >> 5, 19);
+            void *jmp_dst = (void *)src + (imm19 << 2);
+            int jmp_size = calc_jump(dst + 1, dst + 1, jmp_dst, false);
+            // clean imm, set new imm, invert cond
+            *dst++ = ((insn & 0xff00001f) | ((jmp_size + 4) << 3)) ^ 1;
+            dst += jmp_size / 4;
         }
         else {
             *dst++ = insn;
@@ -132,7 +141,7 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
         }
         else if ((insn.opcode & 0xf0) == 0x70) {
             // jcc (short)
-            // revert the condition and insert a jump (len: 2 -> 2+14)
+            // invert the condition and insert a jump (len: 2 -> 2+14)
             void *jmp_dst = src + insn.len + insn.imm8;
             int jmp_len = calc_jump(dst + 2, dst + 2, jmp_dst, false);
             *(uint8_t *)dst = insn.opcode ^ 1; // invert the condition
