@@ -5,9 +5,9 @@
 #include <stdint.h>
 
 #ifdef NO_EXPORT
-#define TH_VIS __attribute__((visibility("hidden")))
+    #define TH_VIS __attribute__((visibility("hidden")))
 #else
-#define TH_VIS __attribute__((visibility("default")))
+    #define TH_VIS __attribute__((visibility("default")))
 #endif
 
 #ifdef __cplusplus

@@ -1,5 +1,11 @@
 CompileFlags:
-  Add: [-xc, -O3, -Wall, -Wshadow]
+  Add:
+    - -I../include
+    - -I../../include
+    - -O3
+    - -xc
+    - -Wall
+    - -Wshadow
   Compiler: clang
 
 Diagnostics:

@@ -1,5 +1,5 @@
-#include "../include/tinyhook.h"
 #include "private.h"
+#include "tinyhook.h"
 
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
@@ -65,7 +65,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
     for (int i = 0; i < 2; i++) {
         struct section_64 *sym_sec = sym_sects[i];
         if (!sym_sec) continue;
-        void **sym_ptrs = (void *)sym_sec->addr + image_slide;
+        void **sym_ptrs = (void **)(sym_sec->addr + image_slide);
         uint32_t *indirect_sym_entry = indirect_sym_tbl + sym_sec->reserved1; // reserved1 is an index!
         size_t nptrs = sym_sec->size / sizeof(void *);
         for (int j = 0; j < nptrs; j++) {
@@ -84,8 +84,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                         break;
                     }
                 }
-                if (origin != NULL)
-                    *origin = sym_ptrs[j];
+                if (origin != NULL) *origin = sym_ptrs[j];
                 sym_ptrs[j] = replacement;
                 break;
             }

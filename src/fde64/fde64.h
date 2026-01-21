@@ -240,8 +240,11 @@ struct fde64s {
 extern "C" {
 #endif
 
-int encode(void *dest, struct fde64s *cmd);
-int decode(const void *src, struct fde64s *cmd);
+// int encode(void *dest, struct fde64s *cmd);
+__attribute__((naked)) int decode(const void *src, struct fde64s *cmd) {
+    asm(".incbin \"src/fde64/decode.bin\"");
+    // this binary is from https://github.com/Antibioticss/fde64
+}
 
 #ifdef __cplusplus
 }

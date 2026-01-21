@@ -1,9 +1,8 @@
 ARCH   ?= $(shell uname -m)
 TARGET ?= macosx
 
-CFLAGS  := -arch $(ARCH) -fvisibility=hidden -Os -Wall -Wshadow
+CFLAGS  := -Iinclude -arch $(ARCH) -fvisibility=hidden -Os -Wall -Wshadow
 LDFLAGS := -flto=full -lobjc
-ASFLAGS := -arch $(ARCH)
 
 SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
@@ -26,9 +25,6 @@ endif
 CFLAGS += $(if $(DEBUG),-g -fsanitize=address)
 CFLAGS += $(if $(COMPACT),-DCOMPACT)
 CFLAGS += $(if $(NO_EXPORT),-DNO_EXPORT)
-ifeq ($(ARCH), x86_64)
-	OBJ += src/fde64/fde64.o
-endif
 
 static: $(LIB_STATIC)
 
@@ -48,6 +44,6 @@ test: $(LIB_STATIC)
 
 clean:
 	cd test && $(MAKE) clean
-	rm -f $(LIB_STATIC) $(LIB_SHARED) $(OBJ) $(FDE)
+	rm -f $(LIB_STATIC) $(LIB_SHARED) $(OBJ)
 
 .PHONY: all static shared test clean

@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <stdio.h>
 
-#import "../../include/tinyhook.h"
+#import "tinyhook.h"
 
 @interface Hook : NSObject
 

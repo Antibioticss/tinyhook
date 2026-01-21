@@ -1,10 +1,10 @@
+#include "../private.h"
+#include "tinyhook.h"
+
 #include <mach-o/dyld.h>   // _dyld_*
 #include <mach-o/loader.h> // mach_header_64, load_command...
 #include <mach-o/nlist.h>  // nlist_64
 #include <string.h>        // strcmp()
-
-#include "../../include/tinyhook.h"
-#include "../private.h"
 
 void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
     void *symbol_address = NULL;
