@@ -1,8 +1,8 @@
 ARCH   ?= $(shell uname -m)
 TARGET ?= macosx
 
-CFLAGS  := -Iinclude -arch $(ARCH) -fvisibility=hidden -Os -Wall -Wshadow
-LDFLAGS := -flto=full -lobjc
+CFLAGS  := -arch $(ARCH) -Iinclude -flto=full -fvisibility=hidden -Os -Wall -Wshadow
+LDFLAGS := -arch $(ARCH) -flto=full -lobjc
 
 SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
@@ -20,6 +20,7 @@ endif
 
 ifeq ($(TARGET), iphoneos)
 	CFLAGS += -isysroot $(shell xcrun --sdk $(TARGET) --show-sdk-path)
+	LDFLAGS += -isysroot $(shell xcrun --sdk $(TARGET) --show-sdk-path)
 endif
 
 CFLAGS += $(if $(DEBUG),-g -fsanitize=address)
@@ -37,7 +38,7 @@ $(LIB_STATIC): $(OBJ)
 	ranlib $@
 
 $(LIB_SHARED): $(OBJ)
-	$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ $^
+	$(CC) $(LDFLAGS) -shared -o $@ $^
 
 test: $(LIB_STATIC)
 	cd test && $(MAKE) run ARCH=$(ARCH)
