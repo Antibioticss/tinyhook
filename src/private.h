@@ -18,6 +18,7 @@
 
 #ifdef COMPACT
     #define LOG_ERROR(fmt, ...) ((void)0)
+    #define ARG_CHECK(x)        ((void)0)
 #else
     #if TARGET_OS_OSX
         #include <printf.h> // fprintf()
@@ -28,6 +29,11 @@
             os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, "ERROR [%s:%d]: " fmt "\n", __FILE__, __LINE__,        \
                              ##__VA_ARGS__)
     #endif
+    #define ARG_CHECK(x)                                                                                               \
+        if (!(x)) {                                                                                                    \
+            LOG_ERROR("ARG_CHECK '%s' failed", #x);                                                                    \
+            abort();                                                                                                   \
+        }
 #endif
 
 #define MB (1ll << 20)

@@ -11,6 +11,8 @@
 #endif
 
 int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacement, void **origin) {
+    ARG_CHECK(symbol_name != NULL);
+    ARG_CHECK(replacement != NULL);
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
@@ -52,7 +54,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
         ld_command = (void *)ld_command + ld_command->cmdsize;
     }
     if (linkedit_cmd == NULL || symtab_cmd == NULL || dysymtab_cmd == NULL) {
-        LOG_ERROR("tiny_interpose: bad mach-o structure!");
+        LOG_ERROR("tiny_interpose: bad mach-o structure for image_index %d!", image_index);
         return 1;
     }
     void *linkedit_base = (void *)image_slide + linkedit_cmd->vmaddr - linkedit_cmd->fileoff;
@@ -80,7 +82,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                     err = mach_vm_protect(mach_task_self(), (mach_vm_address_t)sym_ptrs, sym_sec->size, FALSE,
                                           VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
                     if (err != 0) {
-                        LOG_ERROR("mach_vm_protect: %s", mach_error_string(err));
+                        LOG_ERROR("mach_vm_protect failed for address %p: %s", sym_ptrs, mach_error_string(err));
                         break;
                     }
                 }
@@ -93,7 +95,7 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
 
     if (!found) {
         err = -1;
-        LOG_ERROR("tiny_interpose: no matching indirect symbol found!");
+        LOG_ERROR("tiny_interpose: symbol '%s' not found in image_index %d!", symbol_name, image_index);
     }
     return err;
 }

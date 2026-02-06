@@ -4,10 +4,10 @@
 
 ## Features
 
- - inline hook
- - symbol interposing
- - symbol resolving
- - objc runtime hook
+- inline hook
+- symbol interposing
+- symbol resolving
+- objc runtime hook
 
 ## Building
 
@@ -22,18 +22,20 @@ make
 ```
 
 Available targets:
- - `static` (default) build static library
- - `shared` build shared library
- - `all` build both static and shared libraries
- - `test` run tinyhook tests
+
+- `static` (default) build static library
+- `shared` build shared library
+- `all` build both static and shared libraries
+- `test` run tinyhook tests
 
 Available variables:
- - `ARCH` the arch to build: `arm64`, `arm64e`, `x86_64`
- - `TARGET` targeting os: `macosx`(default), `iphoneos`
- - `MIN_OSVER` minimum os version requirement
- - `DEBUG` generate debug infomation
- - `COMPACT` no error log output (not recommended!)
- - `NO_EXPORT` hide all symbols (don't use this for dynamic library)
+
+- `ARCH` the arch to build: `arm64`, `arm64e`, `x86_64`
+- `TARGET` targeting os: `macosx`(default), `iphoneos`
+- `MIN_OSVER` minimum os version requirement
+- `DEBUG` generate debug infomation
+- `COMPACT` no error log output (not recommended!)
+- `NO_EXPORT` hide all symbols (don't use this for dynamic library)
 
 For example, building shared library for iOS 18.0+ `arm64e` binary with `DEBUG` enabled
 

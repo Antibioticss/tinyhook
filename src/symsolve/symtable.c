@@ -7,12 +7,13 @@
 #include <string.h>        // strcmp()
 
 void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
+    ARG_CHECK(symbol_name != NULL);
     void *symbol_address = NULL;
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
     if (mh_header == NULL) {
-        LOG_ERROR("symtbl_solve: image_index out of range!");
+        LOG_ERROR("symtbl_solve: image_index %d out of range!", image_index);
     }
     struct symtab_command *symtab_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
@@ -32,7 +33,7 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
         ld_command = (void *)ld_command + ld_command->cmdsize;
     }
     if (linkedit_cmd == NULL || symtab_cmd == NULL) {
-        LOG_ERROR("symtbl_solve: bad mach-o structure!");
+        LOG_ERROR("symtbl_solve: bad mach-o structure for image_index %d!", image_index);
         return NULL;
     }
     // stroff and strtbl are in the __LINKEDIT segment
@@ -52,7 +53,7 @@ void *symtbl_solve(uint32_t image_index, const char *symbol_name) {
         symbol_address += image_slide;
     }
     else {
-        LOG_ERROR("symtbl_solve: symbol not found!");
+        LOG_ERROR("symtbl_solve: symbol '%s' not found in image_index %d!", symbol_name, image_index);
     }
     return symbol_address;
 }

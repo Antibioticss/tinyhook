@@ -174,6 +174,8 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
 }
 
 int tiny_hook(void *src, void *dst, void **orig) {
+    ARG_CHECK(src != NULL);
+    ARG_CHECK(dst != NULL);
     int kr = 0;
     int jump_size;
     uint8_t jump_insns[MAX_JUMP_SIZE];
@@ -186,9 +188,10 @@ int tiny_hook(void *src, void *dst, void **orig) {
         // alloc a vm to store headers and jumps
         kr = mach_vm_allocate(mach_task_self(), &vmbase, PAGE_SIZE, VM_FLAGS_ANYWHERE);
         if (kr != 0) {
-            LOG_ERROR("mach_vm_allocate: %s", mach_error_string(kr));
+            LOG_ERROR("mach_vm_allocate failed to alloc trampoline: %s", mach_error_string(kr));
             return kr;
         }
+        mach_vm_protect(mach_task_self(), vmbase, PAGE_SIZE, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
         trampo = (void *)vmbase;
     }
     void *bak = src;
@@ -204,6 +207,8 @@ int tiny_hook(void *src, void *dst, void **orig) {
 }
 
 int tiny_insert(void *src, void *dst) {
+    ARG_CHECK(src != NULL);
+    ARG_CHECK(dst != NULL);
     uint8_t jump_insns[MAX_JUMP_SIZE];
     int jump_size = calc_jump(jump_insns, src, dst, true);
     return write_mem(src, jump_insns, jump_size);
