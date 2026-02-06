@@ -13,3 +13,6 @@ Diagnostics:
     Add: [bugprone-*, cert-*, modernize-*, performance-*]
     Remove: [bugprone-easily-swappable-parameters]
     FastCheckFilter: None
+
+Completion:
+  HeaderInsertion: Never

@@ -39,16 +39,20 @@ static inline void copy_mem(void *destination, const void *source, size_t len) {
 }
 
 int read_mem(void *destination, const void *source, size_t len) {
+    ARG_CHECK(destination != NULL);
+    ARG_CHECK(source != NULL);
+    ARG_CHECK(len != 0);
     int kr = 0;
     vm_offset_t data;
     mach_msg_type_number_t dataCnt;
-    kr = mach_vm_read(mach_task_self(), (mach_vm_address_t)source, len, &data, &dataCnt);
+    mach_port_t task = mach_task_self();
+    kr = mach_vm_read(task, (mach_vm_address_t)source, len, &data, &dataCnt);
     if (kr != 0) {
-        LOG_ERROR("mach_vm_read: %s", mach_error_string(kr));
+        LOG_ERROR("mach_vm_read failed for address %p: %s", source, mach_error_string(kr));
         return kr;
     }
-    memcpy((void *)destination, (void *)data, dataCnt);
-    kr = mach_vm_deallocate(mach_task_self(), data, dataCnt);
+    memcpy(destination, (void *)data, dataCnt);
+    kr = mach_vm_deallocate(task, data, dataCnt);
     if (kr != 0) {
         LOG_ERROR("mach_vm_deallocate: %s", mach_error_string(kr));
     }
@@ -56,18 +60,18 @@ int read_mem(void *destination, const void *source, size_t len) {
 }
 
 int write_mem(void *destination, const void *source, size_t len) {
-    int kr = 0;
-    kr = mach_vm_protect_trap(mach_task_self(), (mach_vm_address_t)destination, len, FALSE,
-                              VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
+    ARG_CHECK(destination != NULL);
+    ARG_CHECK(source != NULL);
+    ARG_CHECK(len != 0);
+    mach_port_t task = mach_task_self();
+    mach_vm_address_t dst = (mach_vm_address_t)destination;
+    int kr = mach_vm_protect_trap(task, dst, len, FALSE, VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
     if (kr != 0) {
-        LOG_ERROR("mach_vm_protect: %s", mach_error_string(kr));
+        LOG_ERROR("mach_vm_protect failed for address %p: %s", destination, mach_error_string(kr));
         return kr;
     }
     copy_mem(destination, source, len);
-    kr = mach_vm_protect_trap(mach_task_self(), (mach_vm_address_t)destination, len, FALSE,
-                              VM_PROT_READ | VM_PROT_EXECUTE);
-    if (kr != 0) {
-        LOG_ERROR("mach_vm_protect: %s", mach_error_string(kr));
-    }
-    return kr;
+    mach_vm_protect_trap(task, dst, len, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
+    // might fail when editing __DATA, but not a big deal
+    return 0;
 }

@@ -4,6 +4,8 @@
 #include <objc/runtime.h> // objc_*, ...
 
 Method ocrt_method(char type, const char *cls, const char *sel) {
+    ARG_CHECK(cls != NULL);
+    ARG_CHECK(sel != NULL);
     Method oc_method = NULL;
     Class oc_class = objc_getClass(cls);
     SEL oc_selector = sel_registerName(sel);
@@ -22,6 +24,8 @@ Method ocrt_method(char type, const char *cls, const char *sel) {
 }
 
 void *ocrt_impl(char type, const char *cls, const char *sel) {
+    ARG_CHECK(cls != NULL);
+    ARG_CHECK(sel != NULL);
     return method_getImplementation(ocrt_method(type, cls, sel));
 }
 
@@ -31,7 +35,7 @@ static Method ensure_method(const char *cls, const char *sel) {
         oc_method = ocrt_method('-', cls, sel);
     }
     if (oc_method == NULL) {
-        LOG_ERROR("ensure_method: method not found!");
+        LOG_ERROR("ensure_method: method '[%s %s]' not found!", cls, sel);
     }
     return oc_method;
 }
@@ -47,6 +51,9 @@ int ocrt_swap(const char *cls1, const char *sel1, const char *cls2, const char *
 }
 
 int ocrt_hook(const char *cls, const char *sel, void *destination, void **origin) {
+    ARG_CHECK(cls != NULL);
+    ARG_CHECK(sel != NULL);
+    ARG_CHECK(destination != NULL);
     Method oc_method = ensure_method(cls, sel);
     if (oc_method == NULL) {
         return 1;

@@ -59,12 +59,13 @@ static void *trie_query(const uint8_t *export, const char *name) {
 }
 
 void *symexp_solve(uint32_t image_index, const char *symbol_name) {
+    ARG_CHECK(symbol_name != NULL);
     void *symbol_address = NULL;
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
     if (mh_header == NULL) {
-        LOG_ERROR("symexp_solve: image_index out of range!");
+        LOG_ERROR("symexp_solve: image_index %d out of range!", image_index);
     }
     struct dyld_info_command *dyldinfo_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
@@ -87,7 +88,7 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
         ld_command = (void *)ld_command + ld_command->cmdsize;
     }
     if (linkedit_cmd == NULL) {
-        LOG_ERROR("symexp_solve: __LINKEDIT segment not found!");
+        LOG_ERROR("symexp_solve: __LINKEDIT segment not found for image_index %d!", image_index);
         return NULL;
     }
     // stroff and strtbl are in the __LINKEDIT segment
@@ -99,7 +100,9 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     else if (export_trie != NULL)
         export_offset = linkedit_base + export_trie->dataoff;
     else {
-        LOG_ERROR("symexp_solve: neither LC_DYLD_INFO_ONLY nor LC_DYLD_EXPORTS_TRIE load command found!");
+        LOG_ERROR(
+            "symexp_solve: neither LC_DYLD_INFO_ONLY nor LC_DYLD_EXPORTS_TRIE load command found for image_index %d!",
+            image_index);
         return NULL;
     }
     symbol_address = trie_query(export_offset, symbol_name);
@@ -108,7 +111,7 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
         symbol_address += (uint64_t)mh_header;
     }
     else {
-        LOG_ERROR("symexp_solve: symbol not found!");
+        LOG_ERROR("symexp_solve: symbol '%s' not found in image_index %d!", symbol_name, image_index);
     }
     return symbol_address;
 }

@@ -11,6 +11,9 @@ static int get_jump_size(const void *src, const void *dst) {
 }
 
 int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin) {
+    ARG_CHECK(bak != NULL);
+    ARG_CHECK(function != NULL);
+    ARG_CHECK(destination != NULL);
     bak->address = function;
     bak->jump_size = get_jump_size(function, destination);
     read_mem(bak->head_bak, bak->address, bak->jump_size);
@@ -18,5 +21,6 @@ int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin
 }
 
 int tiny_unhook_ex(const th_bak_t *bak) {
+    ARG_CHECK(bak != 0);
     return write_mem(bak->address, bak->head_bak, bak->jump_size);
 }

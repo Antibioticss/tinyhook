@@ -1,7 +1,7 @@
 ARCH ?= $(shell uname -m)
 
 CC := clang -I../../include -arch $(ARCH)
-CFLAGS := -Os -Wall -g # -fsanitize=address
+CFLAGS := -O0 -Wall -g
 OBJCFLAGS := -framework Cocoa
 
 OBJ := example.o main.o
