@@ -1,6 +1,8 @@
 # tinyhook
 
-> A minimalist hook framework for macOS/iOS, built for speed and size
+A minimalist hook framework for macOS/iOS, built for speed and size
+
+> Note that inline hooking/inserting only works on **jailbroken iOS devices**
 
 ## Features
 
