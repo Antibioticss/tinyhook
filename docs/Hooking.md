@@ -2,7 +2,7 @@
 
 tinyhook implemented simple inline hooking and symbol interposing functions, supporting both `arm64` and `x86_64` architecture
 
-Note that inline hooking/inserting only works on **jailed iOS devices**
+Note that inline hooking/inserting only works on **jailbroken iOS devices**, because it requires virtual memory write access
 
 ## tiny_hook
 
@@ -26,7 +26,7 @@ Return `0` on success
 
 `origin` can be `NULL` if you don't need to call the original function
 
-## tiny_(un)hook_ex
+## tiny\_(un)hook_ex
 
 Backup the hook to remove it later
 
