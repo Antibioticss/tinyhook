@@ -66,7 +66,7 @@
     #define MAX_HEAD_SIZE 35
 #endif
 
-inline bool need_far_jump(const void *src, const void *dst) {
+static inline bool need_far_jump(const void *src, const void *dst) {
     long long distance = (long long)dst - (long long)src;
     if (distance < 0) distance = -distance;
 #ifdef __aarch64__
