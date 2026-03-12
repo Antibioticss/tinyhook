@@ -4,6 +4,7 @@
     #include "fde64/fde64.h"
 #endif
 
+#include <limits.h>
 #include <stdint.h>
 #include <string.h> // memcpy()
 #ifndef COMPACT
@@ -14,53 +15,71 @@
 static inline int32_t sign_extend(uint32_t x, int N) {
     return (int32_t)(x << (32 - N)) >> (32 - N);
 }
-#endif
 
-static int calc_near_jump(uint8_t *output, void *src, void *dst, bool link) {
-    int jump_size;
-#ifdef __aarch64__
-    // b/bl imm    ; go to dst
-    jump_size = 4;
-    uint32_t insn = (dst - src) >> 2 & 0x3ffffff;
-    insn |= link ? AARCH64_BL : AARCH64_B;
-    *(uint32_t *)output = insn;
-#elif __x86_64__
-    // jmp/call imm    ; go to dst
-    jump_size = 5;
-    *output = link ? X86_64_CALL : X86_64_JMP;
-    *(int32_t *)(output + 1) = (int64_t)dst - (int64_t)src - 5;
-#endif
-    return jump_size;
+static inline int a64_movz_movk(uint16_t rd, uint64_t imm64, uint32_t **outputp) {
+    int size = 0;
+    bool cleaned = false;
+    uint32_t *output = *outputp;
+    for (int i = 0; imm64; imm64 >>= 16, i++) {
+        uint64_t imm16 = imm64 & 0xffff;
+        if (imm16) {
+            uint32_t insn = (i << 21) | (imm16 << 5) | rd;
+            if (cleaned)
+                insn |= AARCH64_MOVK;
+            else
+                insn |= AARCH64_MOVZ, cleaned = true;
+            *output++ = insn;
+            size += 4;
+        }
+    }
+    *outputp = output;
+    return size;
 }
-
-static int calc_far_jump(uint8_t *output, void *src, void *dst, bool link) {
-    int jump_size;
-#ifdef __aarch64__
-    // adrp    x17, imm
-    // add     x17, x17, imm    ; x17 -> dst
-    // br/blr  x17
-    jump_size = 12;
-    int64_t insn = ((int64_t)dst >> 12) - ((int64_t)src >> 12);
-    insn = ((insn & 0x3) << 29) | ((insn & 0x1ffffc) << 3) | AARCH64_ADRP;
-    *(uint32_t *)output = insn;
-    insn = ((int64_t)dst & 0xfff) << 10 | AARCH64_ADD;
-    *(uint32_t *)(output + 4) = insn;
-    *(uint32_t *)(output + 8) = link ? AARCH64_BLR : AARCH64_BR;
-#elif __x86_64__
-    jump_size = 14;
-    // jmp [rip]    ; rip stored dst
-    *(uint32_t *)output = link ? X86_64_CALL_RIP : X86_64_JMP_RIP;
-    *(uint16_t *)(output + 4) = 0;
-    *(uint64_t *)(output + 6) = (uint64_t)dst;
 #endif
-    return jump_size;
-}
 
 static int calc_jump(void *output, void *src, void *dst, bool link) {
-    if (need_far_jump(src, dst))
-        return calc_far_jump(output, src, dst, link);
-    else
-        return calc_near_jump(output, src, dst, link);
+    int jump_size = 0;
+    int64_t gap = (int64_t)dst - (int64_t)src;
+#ifdef __aarch64__
+    uint32_t *outcode = output;
+    if (gap <= 0x8000000 - 1 && gap >= -0x8000000) {
+        // b/bl imm    ; go to dst
+        jump_size = 4;
+        *outcode = (link ? AARCH64_BL : AARCH64_B) | (gap >> 2 & 0x3ffffff);
+    }
+    else {
+        gap = ((int64_t)dst >> 12) - ((int64_t)src >> 12);
+        if (gap <= 0x100000 - 1 && gap >= -0x100000) { // 21 bit imm
+            // adrp    x17, imm
+            // add     x17, x17, imm    ; x17 -> dst
+            jump_size = 8 + 4;
+            *outcode++ = AARCH64_ADRP | ((gap & 0x3) << 29) | ((gap & 0x1ffffc) << 3);
+            *outcode++ = AARCH64_ADD | ((int64_t)dst & 0xfff) << 10;
+        }
+        else {
+            // movz    x17, lowbit
+            // movk    x17, highbit..    ; x17 -> dst
+            jump_size = a64_movz_movk(17, (uint64_t)dst, &outcode) + 4;
+        }
+        *outcode = (link ? AARCH64_BLR : AARCH64_BR);
+    }
+#elif __x86_64__
+    if (gap <= INT32_MAX && gap >= INT32_MIN) { // 32 bit imm
+        // jmp/call imm    ; go to dst
+        jump_size = 5;
+        *(uint8_t *)output = (link ? X86_64_CALL : X86_64_JMP);
+        *(int32_t *)(output + 1) = gap - 5;
+    }
+    else {
+        // jmp [rip]
+        // 0x...           ; hardcoded dst
+        jump_size = 14;
+        *(uint16_t *)output = (link ? X86_64_CALL_RIP : X86_64_JMP_RIP);
+        *(uint32_t *)(output + 2) = 0;
+        *(uint64_t *)(output + 6) = (uint64_t)dst;
+    }
+#endif
+    return jump_size;
 }
 
 static void *trampo;
@@ -77,25 +96,16 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
             // adrp
             int32_t imm21 = sign_extend((insn >> 29 & 0x3) | (insn >> 3 & 0x1ffffc), 21);
             int64_t addr = ((int64_t)src >> 12) + imm21;
-            int64_t len = addr - ((int64_t)dst >> 12);
-            if ((len << 12) < 4 * GB) {
+            int64_t gap = addr - ((int64_t)dst >> 12);
+            if (gap <= 0x100000 - 1 && gap >= -0x100000) { // 21 bit imm
                 // modify the immediate (len: 4 -> 4)
                 insn &= 0x9f00001f; // clean the immediate
-                insn = ((len & 0x3) << 29) | ((len & 0x1ffffc) << 3) | insn;
-                *dst++ = insn;
+                *dst++ = insn | ((gap & 0x3) << 29) | ((gap & 0x1ffffc) << 3);
             }
             else {
                 // use movz + movk to get the address (len: 4 -> 16)
-                int64_t imm64 = addr << 12;
                 uint16_t rd = insn & 0b11111;
-                bool cleaned = false;
-                for (int j = 0; imm64; imm64 >>= 16, j++) {
-                    uint64_t cur_imm = imm64 & 0xffff;
-                    if (cur_imm) {
-                        *dst++ = (j << 21) | (cur_imm << 5) | rd | (cleaned ? AARCH64_MOVK : AARCH64_MOVZ);
-                        cleaned = true;
-                    }
-                }
+                a64_movz_movk(rd, addr << 12, &dst);
             }
         }
         else if (((insn ^ 0x14000000) & 0xfc000000) == 0 || ((insn ^ 0x94000000) & 0xfc000000) == 0) {

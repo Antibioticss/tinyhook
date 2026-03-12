@@ -1,13 +1,30 @@
 #include "private.h"
 #include "tinyhook.h"
 
-static int get_jump_size(const void *src, const void *dst) {
-    bool is_far = need_far_jump(src, dst);
-#ifdef __arm64__
-    return is_far ? 12 : 4;
+static int get_jump_size(void *src, void *dst) {
+    int jump_size = 0;
+    int64_t gap = (int64_t)dst - (int64_t)src;
+#ifdef __aarch64__
+    if (gap <= 0x8000000 - 1 && gap >= -0x8000000)
+        jump_size = 4;
+    else {
+        gap = ((int64_t)dst >> 12) - ((int64_t)src >> 12);
+        if (gap <= 0x100000 - 1 && gap >= -0x100000)
+            jump_size = 12;
+        else {
+            jump_size = 4;
+            uint64_t imm64 = (uint64_t)dst;
+            for (int i = 0; imm64; imm64 >>= 16, i++)
+                if (imm64 & 0xffff) jump_size += 4;
+        }
+    }
 #elif __x86_64__
-    return is_far ? 14 : 5;
+    if (gap <= INT32_MAX && gap >= INT32_MIN)
+        jump_size = 5;
+    else
+        jump_size = 14;
 #endif
+    return jump_size;
 }
 
 int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin) {
@@ -21,6 +38,6 @@ int tiny_hook_ex(th_bak_t *bak, void *function, void *destination, void **origin
 }
 
 int tiny_unhook_ex(const th_bak_t *bak) {
-    ARG_CHECK(bak != 0);
+    ARG_CHECK(bak != NULL);
     return write_mem(bak->address, bak->head_bak, bak->jump_size);
 }

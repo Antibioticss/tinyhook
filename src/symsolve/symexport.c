@@ -66,6 +66,7 @@ void *symexp_solve(uint32_t image_index, const char *symbol_name) {
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
     if (mh_header == NULL) {
         LOG_ERROR("symexp_solve: image_index %d out of range!", image_index);
+        return NULL;
     }
     struct dyld_info_command *dyldinfo_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
