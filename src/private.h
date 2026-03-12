@@ -16,6 +16,33 @@
     #define mach_vm_protect    vm_protect
 #endif
 
+#ifdef __aarch64__
+    #define MAX_JUMP_SIZE 20
+    #define MAX_HEAD_SIZE 48 // size of saved function header
+#elif __x86_64__
+    #define MAX_JUMP_SIZE 14
+    #define MAX_HEAD_SIZE 35
+#endif
+
+#ifdef __aarch64__
+    #define AARCH64_B    0x14000000 // b        +0
+    #define AARCH64_BL   0x94000000 // bl       +0
+    #define AARCH64_ADRP 0x90000011 // adrp     x17, 0
+    #define AARCH64_BR   0xd61f0220 // br       x17
+    #define AARCH64_BLR  0xd63f0220 // blr      x17
+    #define AARCH64_ADD  0x91000231 // add      x17, x17, 0
+    #define AARCH64_SUB  0xd1000231 // sub      x17, x17, 0
+    #define AARCH64_MOVZ 0xd2800000 // movz     xd, 0
+    #define AARCH64_MOVK 0xf2800000 // movk     xd, 0
+#elif __x86_64__
+    #define X86_64_CALL     0xe8   // call
+    #define X86_64_JMP      0xe9   // jmp
+    #define X86_64_JMP_RIP  0x25ff // jmp      [rip]
+    #define X86_64_CALL_RIP 0x15ff // call     [rip]
+    #define X86_64_MOV_RI64 0xb848 // mov      r64, m64
+    #define X86_64_MOV_RM64 0x8b48 // mov      r64, [r64]
+#endif
+
 #ifdef COMPACT
     #define LOG_ERROR(fmt, ...) ((void)0)
     #define ARG_CHECK(x)        ((void)0)
@@ -35,45 +62,5 @@
             abort();                                                                                                   \
         }
 #endif
-
-#define MB (1ll << 20)
-#define GB (1ll << 30)
-
-#ifdef __aarch64__
-    #define AARCH64_B    0x14000000 // b        +0
-    #define AARCH64_BL   0x94000000 // bl       +0
-    #define AARCH64_ADRP 0x90000011 // adrp     x17, 0
-    #define AARCH64_BR   0xd61f0220 // br       x17
-    #define AARCH64_BLR  0xd63f0220 // blr      x17
-    #define AARCH64_ADD  0x91000231 // add      x17, x17, 0
-    #define AARCH64_SUB  0xd1000231 // sub      x17, x17, 0
-    #define AARCH64_MOVZ 0xd2800000 // movz     xd, 0
-    #define AARCH64_MOVK 0xf2800000 // movk     xd, 0
-#elif __x86_64__
-    #define X86_64_CALL     0xe8       // call
-    #define X86_64_JMP      0xe9       // jmp
-    #define X86_64_JMP_RIP  0x000025ff // jmp      [rip]
-    #define X86_64_CALL_RIP 0x000015ff // call     [rip]
-    #define X86_64_MOV_RI64 0xb848     // mov      r64, m64
-    #define X86_64_MOV_RM64 0x8b48     // mov      r64, [r64]
-#endif
-
-#ifdef __aarch64__
-    #define MAX_JUMP_SIZE 12
-    #define MAX_HEAD_SIZE 48 // size of saved function header
-#elif __x86_64__
-    #define MAX_JUMP_SIZE 14
-    #define MAX_HEAD_SIZE 35
-#endif
-
-static inline bool need_far_jump(const void *src, const void *dst) {
-    long long distance = (long long)dst - (long long)src;
-    if (distance < 0) distance = -distance;
-#ifdef __aarch64__
-    return distance >= 128 * MB;
-#elif __x86_64__
-    return distance >= 2 * GB;
-#endif
-}
 
 #endif
