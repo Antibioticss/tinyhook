@@ -21,7 +21,7 @@ static inline int a64_movz_movk(uint16_t rd, uint64_t imm64, uint32_t **outputp)
     bool cleaned = false;
     uint32_t *output = *outputp;
     for (int i = 0; imm64; imm64 >>= 16, i++) {
-        uint64_t imm16 = imm64 & 0xffff;
+        uint16_t imm16 = imm64 & 0xffff;
         if (imm16) {
             uint32_t insn = (i << 21) | (imm16 << 5) | rd;
             if (cleaned)
@@ -53,8 +53,8 @@ static int calc_jump(void *output, void *src, void *dst, bool link) {
             // adrp    x17, imm
             // add     x17, x17, imm    ; x17 -> dst
             jump_size = 8 + 4;
-            *outcode++ = AARCH64_ADRP | ((gap & 0x3) << 29) | ((gap & 0x1ffffc) << 3);
-            *outcode++ = AARCH64_ADD | ((int64_t)dst & 0xfff) << 10;
+            *outcode++ = AARCH64_ADRP | (uint32_t)((gap & 0x3) << 29) | (uint32_t)((gap & 0x1ffffc) << 3);
+            *outcode++ = AARCH64_ADD | (uint32_t)((int64_t)dst & 0xfff) << 10;
         }
         else {
             // movz    x17, lowbit
@@ -64,11 +64,11 @@ static int calc_jump(void *output, void *src, void *dst, bool link) {
         *outcode = (link ? AARCH64_BLR : AARCH64_BR);
     }
 #elif __x86_64__
-    if (gap <= INT32_MAX && gap >= INT32_MIN) { // 32 bit imm
+    if (gap - 5 <= INT32_MAX && gap - 5 >= INT32_MIN) { // 32 bit imm
         // jmp/call imm    ; go to dst
         jump_size = 5;
         *(uint8_t *)output = (link ? X86_64_CALL : X86_64_JMP);
-        *(int32_t *)(output + 1) = gap - 5;
+        *(int32_t *)(output + 1) = (int32_t)gap - 5;
     }
     else {
         // jmp [rip]
@@ -100,7 +100,7 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
             if (gap <= 0x100000 - 1 && gap >= -0x100000) { // 21 bit imm
                 // modify the immediate (len: 4 -> 4)
                 insn &= 0x9f00001f; // clean the immediate
-                *dst++ = insn | ((gap & 0x3) << 29) | ((gap & 0x1ffffc) << 3);
+                *dst++ = insn | (uint32_t)((gap & 0x3) << 29) | (uint32_t)((gap & 0x1ffffc) << 3);
             }
             else {
                 // use movz + movk to get the address (len: 4 -> 16)
