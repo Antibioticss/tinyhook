@@ -11,13 +11,13 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: build macos libraries
         run: ./build.sh -t macosx -v 10.15
 
       - name: upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tinyhook-macosx
           path: |
@@ -30,7 +30,7 @@ jobs:
         run: ./build.sh -t iphoneos -v 12.0
 
       - name: upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tinyhook-iphoneos
           path: |
@@ -51,7 +51,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: run test
         run: make test
