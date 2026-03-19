@@ -1,0 +1,9 @@
+option('tinyhook_compact',
+       type : 'boolean',
+       value : false,
+       description : 'No error log output')
+
+option('tinyhook_no_export',
+       type : 'boolean',
+       value : false,
+       description : 'Hide all symbols')
