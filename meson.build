@@ -7,12 +7,6 @@ project('tinyhook', 'c',
 tinyhook_compact = get_option('tinyhook_compact')
 tinyhook_no_export = get_option('tinyhook_no_export')
 
-# Define user options
-option('tinyhook_compact', type : 'boolean', value : false,
-       description : 'No error log output')
-option('tinyhook_no_export', type : 'boolean', value : false,
-       description : 'Hide all symbols')
-
 # Source files
 th_sources = [
   'src/memory.c',
