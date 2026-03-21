@@ -51,6 +51,8 @@ TH_VIS void *symtbl_solve(uint32_t image_index, const char *symbol_name);
 
 TH_VIS void *symexp_solve(uint32_t image_index, const char *symbol_name);
 
+TH_VIS void *symstub_solve(uint32_t image_index, const char *symbol_name);
+
 #ifdef __cplusplus
 }
 #endif

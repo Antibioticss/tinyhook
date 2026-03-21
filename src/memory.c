@@ -2,6 +2,7 @@
 #include "tinyhook.h"
 
 #include <string.h> // memcpy()
+#include <libkern/OSCacheControl.h> // sys_icache_invalidate
 #ifndef COMPACT
     #include <mach/mach_error.h> // mach_error_string()
 #endif
@@ -75,6 +76,7 @@ int write_mem(void *destination, const void *source, size_t len) {
         return kr;
     }
     copy_mem(destination, source, len);
+    sys_icache_invalidate(destination, len);
     mach_vm_protect(task, dst, len, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
     // might fail when editing __DATA, but not a big deal
     return 0;

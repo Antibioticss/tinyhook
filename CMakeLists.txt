@@ -16,6 +16,7 @@ set(TH_SOURCES
     src/tinyhook.c
     src/interpose.c
     src/objcrt.c
+    src/symsolve/symstub.c
     src/symsolve/symtable.c
     src/symsolve/symexport.c
     src/exhook.c

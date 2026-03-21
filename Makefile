@@ -40,6 +40,10 @@ $(LIB_STATIC): $(OBJ)
 $(LIB_SHARED): $(OBJ)
 	$(CC) $(LDFLAGS) -shared -o $@ $^
 
+install: $(LIB_STATIC)
+	cp $(LIB_STATIC) /usr/local/lib
+	cp include/tinyhook.h /usr/local/include
+
 test: $(LIB_STATIC)
 	cd test && $(MAKE) run ARCH=$(ARCH)
 
@@ -47,4 +51,4 @@ clean:
 	cd test && $(MAKE) clean
 	rm -f $(LIB_STATIC) $(LIB_SHARED) $(OBJ)
 
-.PHONY: all static shared test clean
+.PHONY: all static shared install test clean

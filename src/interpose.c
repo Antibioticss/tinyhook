@@ -16,28 +16,33 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
-    struct section_64 *sym_sects[2] = {NULL, NULL}; // possible to have both!
+
+    int nsym_sect = 0;
+    bool sect_isconst[5];
+    struct section_64 *sym_sects[5] = {NULL};
     struct symtab_command *symtab_cmd = NULL;
     struct dysymtab_command *dysymtab_cmd = NULL;
     struct segment_command_64 *linkedit_cmd = NULL;
     for (int i = 0; i < mh_header->ncmds; i++) {
         if (ld_command->cmd == LC_SEGMENT_64) {
             const struct segment_command_64 *segment = (struct segment_command_64 *)ld_command;
-            if (strcmp(segment->segname, "__DATA_CONST") == 0) {
-                if (sym_sects[0]) continue;
-                struct section_64 *data_const_sect = (void *)(segment + 1);
+            if (strcmp(segment->segname, "__DATA_CONST") == 0 || strcmp(segment->segname, "__AUTH_CONST") == 0) {
+                struct section_64 *section = (void *)segment + sizeof(struct segment_command_64);
                 for (int j = 0; j < segment->nsects; j++) {
-                    if ((data_const_sect[j].flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS) {
-                        sym_sects[0] = data_const_sect + j; // __nl_symbol_ptr
+                    if ((section[j].flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS ||
+                        strcmp(section[j].sectname, "__got") == 0) { // dyld shared cache cleaned the flag
+                        sect_isconst[nsym_sect] = true;
+                        sym_sects[nsym_sect++] = section + j; // __nl_symbol_ptr
+                        // TODO: check if in shared cache and parse each section mapping
                     }
                 }
             }
             else if (strcmp(segment->segname, "__DATA") == 0) {
-                if (sym_sects[1]) continue;
-                struct section_64 *data_sect = (void *)(segment + 1);
+                struct section_64 *section = (void *)segment + sizeof(struct segment_command_64);
                 for (int j = 0; j < segment->nsects; j++) {
-                    if ((data_sect[j].flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
-                        sym_sects[1] = data_sect + j; // __la_symbol_ptr
+                    if ((section[j].flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS) {
+                        sect_isconst[nsym_sect] = false;
+                        sym_sects[nsym_sect++] = section + j; // __la_symbol_ptr
                     }
                 }
             }
@@ -63,8 +68,8 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
     uint32_t *indirect_sym_tbl = linkedit_base + dysymtab_cmd->indirectsymoff;
 
     int err = 0;
-    bool found = 0;
-    for (int i = 0; i < 2; i++) {
+    bool found = false;
+    for (int i = 0; i < nsym_sect; i++) {
         struct section_64 *sym_sec = sym_sects[i];
         if (!sym_sec) continue;
         void **sym_ptrs = (void **)(sym_sec->addr + image_slide);
@@ -77,8 +82,8 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
                 continue;
             }
             if (strcmp(symbol_name, str_tbl + nl_tbl[symtab_index].n_un.n_strx) == 0) {
-                found = 1;
-                if (i == 0) { // __nl_symbol_ptr in __DATA_CONST
+                found = true;
+                if (sect_isconst[i]) {
                     err = mach_vm_protect(mach_task_self(), (mach_vm_address_t)sym_ptrs, sym_sec->size, FALSE,
                                           VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
                     if (err != 0) {
