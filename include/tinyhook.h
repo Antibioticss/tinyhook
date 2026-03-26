@@ -14,6 +14,13 @@
 extern "C" {
 #endif
 
+typedef enum {
+    RESOLVE_ALL = 0,
+    RESOLVE_EXPORT = 1 << 0,
+    RESOLVE_SYMTAB = 1 << 1,
+    RESOLVE_STUBS = 1 << 2
+} resolve_type_t;
+
 typedef struct {
     void *address;
     int jump_size;
@@ -47,11 +54,7 @@ TH_VIS int read_mem(void *destination, const void *source, size_t len);
 TH_VIS int write_mem(void *destination, const void *source, size_t len);
 
 /* symbol resolve */
-TH_VIS void *symtbl_solve(uint32_t image_index, const char *symbol_name);
-
-TH_VIS void *symexp_solve(uint32_t image_index, const char *symbol_name);
-
-TH_VIS void *symstub_solve(uint32_t image_index, const char *symbol_name);
+TH_VIS void *symbol_resolve(uint32_t image_index, const char *symbol_name, resolve_type_t type);
 
 #ifdef __cplusplus
 }

@@ -4,6 +4,7 @@
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #ifndef COMPACT

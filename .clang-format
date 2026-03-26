@@ -4,7 +4,7 @@ IndentWidth: 4
 ColumnLimit: 120
 AlignConsecutiveMacros: AcrossEmptyLines
 AllowShortFunctionsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 BreakAfterAttributes: Always
 BreakBeforeBraces: Custom
 BraceWrapping:

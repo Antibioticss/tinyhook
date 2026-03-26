@@ -43,12 +43,12 @@ __attribute__((constructor(0))) int load() {
     (void)fprintf(stderr, "=== libexample loading...\n");
 
     // get an exported symbol address
-    void (*func_addr)(void) = symexp_solve(1, "_exported_func");
+    void (*func_addr)(void) = symbol_resolve(1, "_exported_func", RESOLVE_EXPORT);
     (void)fprintf(stderr, "=== exported_func() address: %p\n", func_addr);
     func_addr();
 
     // hook a function by symbol (in the SYMTAB)
-    void *func_add = symtbl_solve(0, "_add");
+    void *func_add = symbol_resolve(0, "_add", RESOLVE_SYMTAB);
     (void)fprintf(stderr, "=== add() address: %p\n", func_add);
     tiny_hook(func_add, fake_add, (void **)&orig_add);
 

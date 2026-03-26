@@ -2,6 +2,7 @@
 #define TINYHOOK_PRIVATE_H
 
 #include <TargetConditionals.h>
+#include <stdlib.h>
 
 #include <mach/mach_init.h> // mach_task_self()
 #if TARGET_OS_OSX
