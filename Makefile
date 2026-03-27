@@ -23,7 +23,7 @@ ifeq ($(TARGET), iphoneos)
 	LDFLAGS += -isysroot $(shell xcrun --sdk $(TARGET) --show-sdk-path)
 endif
 
-CFLAGS += $(if $(DEBUG),-g -fsanitize=address)
+CFLAGS += $(if $(DEBUG),-g)
 CFLAGS += $(if $(COMPACT),-DCOMPACT)
 CFLAGS += $(if $(NO_EXPORT),-DNO_EXPORT)
 

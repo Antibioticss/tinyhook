@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int add2(int a, int b) {
     return a + b;
@@ -15,5 +17,7 @@ __attribute__((naked)) int add(int a, int b) {
 int main() {
     int res = add(1, 2);
     printf("1 + 2 = %d\n", res);
+    const char *progname = getprogname();
+    printf("progname: %s (length %lu)\n", progname, strlen(progname));
     return 0;
 }

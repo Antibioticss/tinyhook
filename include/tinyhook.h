@@ -24,7 +24,7 @@ typedef enum {
 typedef struct {
     void *address;
     int jump_size;
-    uint8_t head_bak[16];
+    uint8_t head_bak[20];
 } th_bak_t;
 
 /* inline hook */
