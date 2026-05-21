@@ -13,6 +13,8 @@ Diagnostics:
     Add: [bugprone-*, cert-*, modernize-*, performance-*]
     Remove: [bugprone-easily-swappable-parameters]
     FastCheckFilter: None
+    CheckOptions:
+      bugprone-signed-bitwise.IgnorePositiveIntegerLiterals: true
 
 Completion:
   HeaderInsertion: Never

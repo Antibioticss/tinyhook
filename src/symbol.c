@@ -102,7 +102,7 @@ static int parse_macho(uint32_t image_index, struct imageinfo *info) {
 }
 
 static uint64_t read_uleb128(const uint8_t **p) {
-    int bit = 0;
+    uint bit = 0;
     uint64_t result = 0;
     do {
         uint64_t slice = **p & 0x7f;
@@ -207,7 +207,7 @@ static void *resolve_stub(struct imageinfo *info, const char *symbol_name) {
     return info->image_slide + value;
 }
 
-void *symbol_resolve(uint32_t image_index, const char *symbol_name, resolve_type_t type) {
+void *symbol_resolve(uint32_t image_index, const char *symbol_name, uint resolve_type) {
     ARG_CHECK(symbol_name != NULL);
     struct imageinfo info;
     memset(&info, 0, sizeof(struct imageinfo));
@@ -219,7 +219,6 @@ void *symbol_resolve(uint32_t image_index, const char *symbol_name, resolve_type
     }
 
     void *symbol_address = NULL;
-    resolve_type_t resolve_type = type;
     if (resolve_type == RESOLVE_ALL) resolve_type = RESOLVE_EXPORT | RESOLVE_SYMTAB | RESOLVE_STUBS;
     if ((resolve_type & RESOLVE_EXPORT) && info.export) {
         symbol_address = resolve_export(&info, symbol_name);
@@ -235,7 +234,7 @@ void *symbol_resolve(uint32_t image_index, const char *symbol_name, resolve_type
     }
 
     if (!symbol_address) {
-        LOG_ERROR("symbol_resove: symbol '%s' not found in image_index %d!", symbol_name, image_index);
+        LOG_ERROR("symbol_resolve: symbol '%s' not found in image_index %d!", symbol_name, image_index);
     }
 
     return symbol_address;

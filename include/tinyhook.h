@@ -14,12 +14,10 @@
 extern "C" {
 #endif
 
-typedef enum {
-    RESOLVE_ALL = 0,
-    RESOLVE_EXPORT = 1 << 0,
-    RESOLVE_SYMTAB = 1 << 1,
-    RESOLVE_STUBS = 1 << 2
-} resolve_type_t;
+#define RESOLVE_ALL    0u
+#define RESOLVE_EXPORT 1u
+#define RESOLVE_SYMTAB 2u
+#define RESOLVE_STUBS  4u
 
 typedef struct {
     void *address;
@@ -54,7 +52,7 @@ TH_VIS int read_mem(void *destination, const void *source, size_t len);
 TH_VIS int write_mem(void *destination, const void *source, size_t len);
 
 /* symbol resolve */
-TH_VIS void *symbol_resolve(uint32_t image_index, const char *symbol_name, resolve_type_t type);
+TH_VIS void *symbol_resolve(uint32_t image_index, const char *symbol_name, uint resolve_type);
 
 #ifdef __cplusplus
 }

@@ -1,10 +1,24 @@
 #include <dlfcn.h>
+#include <mach-o/dyld.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/sysctl.h>
 
 #include "tinyhook.h"
+
+static uint32_t name2index(const char *image_name) {
+    size_t len = strlen(image_name);
+    uint32_t total = _dyld_image_count();
+    for (uint32_t i = 0; i < total; i++) {
+        const char *full_name = _dyld_get_image_name(i);
+        size_t full_len = strlen(full_name);
+        if (len <= full_len && strcmp(image_name, full_name + full_len - len) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 int (*orig_printf)(const char *format, ...);
 int printf_hooked(const char *format, ...) {
@@ -45,7 +59,7 @@ __attribute__((constructor(0))) int load0() {
     printf("[=] libexample loading...\n");
 
     // resolve exported symbol address
-    void (*func_addr)(void) = symbol_resolve(1, "_exported_func", RESOLVE_EXPORT);
+    void (*func_addr)(void) = symbol_resolve(name2index("libexample.dylib"), "_exported_func", RESOLVE_EXPORT);
     printf("=== exported_func() in libexample address: %p\n", func_addr);
     func_addr();
 
@@ -54,9 +68,11 @@ __attribute__((constructor(0))) int load0() {
     printf("=== add() in main address: %p\n", func_add);
 
     // resolve symbol stub address
-    size_t (*stub_strlen)(const char *str) = symbol_resolve(0, "_strlen", RESOLVE_STUBS);
+    size_t (*stub_strlen)(const char *str) = symbol_resolve(name2index("main"), "_strlen", RESOLVE_STUBS);
     printf("=== strlen() stub in main address: %p\n", stub_strlen);
-    printf("Calling stub: strlen('tinyhook') = %lu\n", stub_strlen("tinyhook"));
+    if (stub_strlen) { // not working with lldb?
+        printf("Calling stub: strlen('tinyhook') = %lu\n", stub_strlen("tinyhook"));
+    }
 
     // hook a simple function
     tiny_hook(func_add, fake_add, (void **)&orig_add);

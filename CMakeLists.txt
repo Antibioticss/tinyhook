@@ -15,10 +15,8 @@ set(TH_SOURCES
     src/memory.c
     src/tinyhook.c
     src/interpose.c
+    src/symbol.c
     src/objcrt.c
-    src/symsolve/symstub.c
-    src/symsolve/symtable.c
-    src/symsolve/symexport.c
     src/exhook.c
 )
 include_directories(src)

@@ -25,3 +25,5 @@
 build
 example
 infer-out
+docs/.vitepress/dist
+docs/.vitepress/cache

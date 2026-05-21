@@ -31,26 +31,25 @@
 #endif
 
 #ifdef __aarch64__
-static inline int32_t sign_extend(uint32_t x, int N) {
-    return (int32_t)(x << (32 - N)) >> (32 - N);
+static inline int32_t sign_extend(uint32_t x, uint N) {
+    const uint32_t mask = 1u << (N - 1);
+    return (int32_t)((x ^ mask) - mask);
 }
 
 static inline int a64_movz_movk(uint16_t rd, uint64_t imm64, uint32_t **outputp) {
-    int size = 0;
     bool cleaned = false;
     uint32_t *output = *outputp;
-    for (int i = 0; imm64; imm64 >>= 16, i++) {
-        uint16_t imm16 = imm64 & 0xffff;
-        if (imm16) {
-            uint32_t insn = (i << 21) | (imm16 << 5) | rd;
+    for (uint32_t i = 0; imm64; imm64 >>= 16, i++) {
+        if (imm64 & 0xffff) {
+            uint32_t insn = (i << 21) | ((imm64 & 0xffff) << 5) | rd;
             if (cleaned) insn |= AARCH64_MOVK;
             else insn |= AARCH64_MOVZ, cleaned = true;
             *output++ = insn;
-            size += 4;
         }
     }
+    int insnlen = (int)(output - *outputp) * 4;
     *outputp = output;
-    return size;
+    return insnlen;
 }
 #endif
 
@@ -62,16 +61,17 @@ static int calc_jump(void *output, void *src, void *dst, bool link) {
     if (gap <= 0x8000000 - 1 && gap >= -0x8000000) {
         // b/bl imm    ; go to dst
         jump_size = 4;
-        *outcode = (link ? AARCH64_BL : AARCH64_B) | (gap >> 2 & 0x3ffffff);
+        *outcode = (link ? AARCH64_BL : AARCH64_B) | (((uint64_t)gap >> 2) & 0x3ffffff);
     }
     else {
-        gap = ((int64_t)dst >> 12) - ((int64_t)src >> 12);
+        gap = (int64_t)((uint64_t)dst >> 12) - (int64_t)((uint64_t)src >> 12);
         if (gap <= 0x100000 - 1 && gap >= -0x100000) { // 21 bit imm
             // adrp    x17, imm
             // add     x17, x17, imm    ; x17 -> dst
             jump_size = 8 + 4;
-            *outcode++ = AARCH64_ADRP | (uint32_t)((gap & 0x3) << 29) | (uint32_t)((gap & 0x1ffffc) << 3);
-            *outcode++ = AARCH64_ADD | (uint32_t)((int64_t)dst & 0xfff) << 10;
+            uint64_t ugap = (uint64_t)gap;
+            *outcode++ = AARCH64_ADRP | ((ugap & 0x3) << 29) | ((ugap & 0x1ffffc) << 3);
+            *outcode++ = AARCH64_ADD | ((uint64_t)dst & 0xfff) << 10;
         }
         else {
             // movz    x17, lowbit
@@ -112,33 +112,32 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
         if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
             // adrp
             int32_t imm21 = sign_extend((insn >> 29 & 0x3) | (insn >> 3 & 0x1ffffc), 21);
-            int64_t addr = ((int64_t)src >> 12) + imm21;
-            int64_t gap = addr - ((int64_t)dst >> 12);
+            int64_t addr = (int64_t)((uint64_t)src >> 12) + imm21;
+            int64_t gap = addr - (int64_t)((uint64_t)dst >> 12);
             if (gap <= 0x100000 - 1 && gap >= -0x100000) { // 21 bit imm
                 // modify the immediate (len: 4 -> 4)
+                uint64_t ugap = (uint64_t)gap;
                 insn &= 0x9f00001f; // clean the immediate
-                *dst++ = insn | (uint32_t)((gap & 0x3) << 29) | (uint32_t)((gap & 0x1ffffc) << 3);
+                *dst++ = insn | ((ugap & 0x3) << 29) | ((ugap & 0x1ffffc) << 3);
             }
             else {
                 // use movz + movk to get the address (len: 4 -> 16)
                 uint16_t rd = insn & 0b11111;
-                a64_movz_movk(rd, addr << 12, &dst);
+                a64_movz_movk(rd, (uint64_t)addr << 12, &dst);
             }
         }
         else if (((insn ^ 0x14000000) & 0xfc000000) == 0 || ((insn ^ 0x94000000) & 0xfc000000) == 0) {
             // b or bl
             bool link = insn >> 31;
-            int32_t imm26 = sign_extend(insn, 26);
-            void *addr = (void *)src + (imm26 << 2);
+            void *addr = src + sign_extend(insn & 0x3ffffff, 26);
             dst += calc_jump(dst, dst, addr, link) / 4;
         }
         else if (((insn ^ 0x54000000) & 0xff000000) == 0) {
             // b.cond or bc.cond
-            int32_t imm19 = sign_extend(insn >> 5, 19);
-            void *jmp_dst = (void *)src + (imm19 << 2);
+            void *jmp_dst = src + sign_extend((insn >> 5) & 0x7ffff, 19);
             int jmp_size = calc_jump(dst + 1, dst + 1, jmp_dst, false);
             // clean imm, set new imm, invert cond
-            *dst++ = ((insn & 0xff00001f) | ((jmp_size + 4) << 3)) ^ 1;
+            *dst++ = ((insn & 0xff00001f) | ((uint)(jmp_size + 4) << 3)) ^ 1;
             dst += jmp_size / 4;
         }
         else {
