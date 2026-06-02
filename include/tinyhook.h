@@ -54,6 +54,10 @@ TH_VIS int write_mem(void *destination, const void *source, size_t len);
 /* symbol resolve */
 TH_VIS void *symbol_resolve(uint32_t image_index, const char *symbol_name, uint resolve_type);
 
+#define symtbl_solve(image_index, symbol_name)  symbol_resolve(image_index, symbol_name, RESOLVE_SYMTAB)
+#define symexp_solve(image_index, symbol_name)  symbol_resolve(image_index, symbol_name, RESOLVE_EXPORT)
+#define symstub_solve(image_index, symbol_name) symbol_resolve(image_index, symbol_name, RESOLVE_STUB)
+
 #ifdef __cplusplus
 }
 #endif

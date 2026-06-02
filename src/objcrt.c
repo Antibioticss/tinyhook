@@ -26,7 +26,9 @@ Method ocrt_method(char type, const char *cls, const char *sel) {
 void *ocrt_impl(char type, const char *cls, const char *sel) {
     ARG_CHECK(cls != NULL);
     ARG_CHECK(sel != NULL);
-    return method_getImplementation(ocrt_method(type, cls, sel));
+    Method method = ocrt_method(type, cls, sel);
+    if (method == NULL) return NULL;
+    return method_getImplementation(method);
 }
 
 static Method ensure_method(const char *cls, const char *sel) {

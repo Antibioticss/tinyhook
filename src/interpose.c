@@ -17,6 +17,10 @@ int tiny_interpose(uint32_t image_index, const char *symbol_name, void *replacem
     intptr_t image_slide = _dyld_get_image_vmaddr_slide(image_index);
     struct mach_header_64 *mh_header = (struct mach_header_64 *)_dyld_get_image_header(image_index);
     struct load_command *ld_command = (void *)mh_header + sizeof(struct mach_header_64);
+    if (mh_header == NULL) {
+        LOG_ERROR("parse_macho: image_index %d out of range!", image_index);
+        return -1;
+    }
 
     int nsym_sect = 0;
     bool sect_isconst[5];
