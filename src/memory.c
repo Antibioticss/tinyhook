@@ -1,7 +1,7 @@
 #include "private.h"
 #include "tinyhook.h"
 
-#include <string.h> // memcpy()
+#include <string.h>                 // memcpy()
 #include <libkern/OSCacheControl.h> // sys_icache_invalidate
 #ifndef COMPACT
     #include <mach/mach_error.h> // mach_error_string()

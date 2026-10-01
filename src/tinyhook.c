@@ -37,6 +37,10 @@ static inline int32_t sign_extend(uint32_t x, uint N) {
 }
 
 static inline int a64_movz_movk(uint16_t rd, uint64_t imm64, uint32_t **outputp) {
+    if (!imm64) {
+        *(*outputp)++ = AARCH64_MOVZ | rd;
+        return 4;
+    }
     bool cleaned = false;
     uint32_t *output = *outputp;
     for (uint32_t i = 0; imm64; imm64 >>= 16, i++) {
@@ -109,30 +113,38 @@ static inline void save_header(void **src_p, void **dst_p, int min_len) {
     uint32_t *src = *src_p, *dst = *dst_p;
     for (uint32_t *end = src + min_len / 4; src < end; src++) {
         insn = *src;
-        if (((insn ^ 0x90000000) & 0x9f000000) == 0) {
-            // adrp
-            int32_t imm21 = sign_extend((insn >> 29 & 0x3) | (insn >> 3 & 0x1ffffc), 21);
-            int64_t addr = (int64_t)((uint64_t)src >> 12) + imm21;
-            int64_t gap = addr - (int64_t)((uint64_t)dst >> 12);
-            if (gap <= 0x100000 - 1 && gap >= -0x100000) { // 21 bit imm
+        if ((insn & 0x1f000000) == 0x10000000) {
+            // adr or adrp
+            uint64_t addr;
+            int64_t imm21 = sign_extend((insn >> 29 & 0x3) | (insn >> 3 & 0x1ffffc), 21);
+            if (insn >> 31) { // adrp
+                addr = (int64_t)((uint64_t)src >> 12) + imm21;
+                imm21 = (int64_t)addr - (int64_t)((uint64_t)dst >> 12);
+                addr = addr << 12;
+            }
+            else { // adr
+                addr = (int64_t)src + imm21;
+                imm21 = (int64_t)addr - (int64_t)dst;
+            }
+            if (imm21 <= 0x100000 - 1 && imm21 >= -0x100000) { // 21 bit imm
                 // modify the immediate (len: 4 -> 4)
-                uint64_t ugap = (uint64_t)gap;
+                uint64_t imm = (uint64_t)imm21;
                 insn &= 0x9f00001f; // clean the immediate
-                *dst++ = insn | ((ugap & 0x3) << 29) | ((ugap & 0x1ffffc) << 3);
+                *dst++ = insn | ((imm & 0x3) << 29) | ((imm & 0x1ffffc) << 3);
             }
             else {
                 // use movz + movk to get the address (len: 4 -> 16)
-                uint16_t rd = insn & 0b11111;
-                a64_movz_movk(rd, (uint64_t)addr << 12, &dst);
+                uint16_t rd = insn & 0x1f;
+                a64_movz_movk(rd, addr, &dst);
             }
         }
-        else if (((insn ^ 0x14000000) & 0xfc000000) == 0 || ((insn ^ 0x94000000) & 0xfc000000) == 0) {
+        else if ((insn & 0x7c000000) == 0x14000000) {
             // b or bl
             bool link = insn >> 31;
             void *addr = src + sign_extend(insn & 0x3ffffff, 26);
             dst += calc_jump(dst, dst, addr, link) / 4;
         }
-        else if (((insn ^ 0x54000000) & 0xff000000) == 0) {
+        else if ((insn & 0xff000000) == 0x54000000) {
             // b.cond or bc.cond
             void *jmp_dst = src + sign_extend((insn >> 5) & 0x7ffff, 19);
             int jmp_size = calc_jump(dst + 1, dst + 1, jmp_dst, false);
