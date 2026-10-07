@@ -1,8 +1,10 @@
 ARCH   ?= $(shell uname -m)
 TARGET ?= macosx
 
-CFLAGS  := -arch $(ARCH) -Iinclude -flto=full -fvisibility=hidden -Os -Wall -Wshadow
-LDFLAGS := -arch $(ARCH) -flto=full -lobjc
+LTO     ?=
+
+CFLAGS  := -arch $(ARCH) -Iinclude $(if $(LTO),-flto=$(LTO)) -fvisibility=hidden -Os -Wall -Wshadow
+LDFLAGS := -arch $(ARCH) $(if $(LTO),-flto=$(LTO)) -lobjc
 
 SRC := $(shell find src -name "*.c")
 OBJ := $(patsubst %.c,%.o,$(wildcard $(SRC)))
